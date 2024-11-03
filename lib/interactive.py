@@ -476,6 +476,10 @@ class interactiveSim():
       meshPacket.want_ack = packet["wantAck"]
     if "hopLimit" in packet:
       meshPacket.hop_limit = packet["hopLimit"]
+    if "hopStart" in packet:
+      meshPacket.hop_start = packet["hopStart"]
+    if "viaMQTT" in packet:
+      meshPacket.via_mqtt = packet["viaMQTT"]
     if "requestId" in packet["decoded"]:
       meshPacket.decoded.request_id = packet["decoded"]["requestId"]
     if "wantResponse" in packet["decoded"]:
@@ -510,6 +514,10 @@ class interactiveSim():
         meshPacket.want_ack = packet["wantAck"]
       if "hopLimit" in packet:
         meshPacket.hop_limit = packet["hopLimit"]
+      if "hopStart" in packet:
+        meshPacket.hop_start = packet["hopStart"]
+      if "viaMQTT" in packet:
+        meshPacket.via_mqtt = packet["viaMQTT"]
       if "requestId" in packet["decoded"]:
         meshPacket.decoded.request_id = packet["decoded"]["requestId"]
       if "wantResponse" in packet["decoded"]:
