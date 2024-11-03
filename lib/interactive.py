@@ -488,7 +488,7 @@ class interactiveSim():
       meshPacket.channel = int(packet["channel"])
     for i, rx in enumerate(receivers):
       meshPacket.rx_rssi = int(rssis[i]) 
-      meshPacket.rx_snr = int(snrs[i])  
+      meshPacket.rx_snr = snrs[i]  
       toRadio = mesh_pb2.ToRadio()
       toRadio.packet.CopyFrom(meshPacket)
       rx.iface._sendToRadio(toRadio)
