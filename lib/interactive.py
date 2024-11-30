@@ -20,6 +20,8 @@ HW_ID_OFFSET = 16
 TCP_PORT_OFFSET = 4403
 TCP_PORT_CLIENT = 4402
 MAX_TO_FROM_RADIO_SIZE = 512
+DEVICE_SIM_DOCKER_IMAGE = "meshtastic/device-simulator"
+MESHTASTICD_PATH_DOCKER = "./meshtasticd"
 
 class interactiveNode(): 
   def __init__(self, nodes, nodeId, hwId, TCPPort, nodeConfig):
@@ -334,16 +336,16 @@ class interactiveSim():
         exit(1)
       n0 = self.nodes[0]
       dockerClient = docker.from_env()
-      startNode = "./meshtasticd_linux_amd64 -e "
+      startNode = f"{MESHTASTICD_PATH_DOCKER} -e "
 
       if sys.platform == "darwin":
-        self.container = dockerClient.containers.run("meshtastic/device-simulator", startNode + "-d /home/node"+str(n0.nodeid)+" -h "+str(n0.hwId)+" -p "+str(n0.TCPPort), \
+        self.container = dockerClient.containers.run(DEVICE_SIM_DOCKER_IMAGE, startNode + "-d /home/node"+str(n0.nodeid)+" -h "+str(n0.hwId)+" -p "+str(n0.TCPPort), \
           ports=dict(zip((str(n.TCPPort)+'/tcp' for n in self.nodes), (n.TCPPort for n in self.nodes))), name="Meshtastic", detach=True, auto_remove=True, user="root")
         for n in self.nodes[1:]:
-          self.container.exec_run("./meshtasticd_linux_amd64 -e -d /home/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort), detach=True, user="root") 
+          self.container.exec_run(f"{MESHTASTICD_PATH_DOCKER} -e -d /home/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort), detach=True, user="root") 
         print("Docker container with name "+str(self.container.name)+" is started.")
       else: 
-        self.container = dockerClient.containers.run("meshtastic/device-simulator", \
+        self.container = dockerClient.containers.run(DEVICE_SIM_DOCKER_IMAGE, \
           "sh -c '" + startNode + "-d /home/node"+str(n0.nodeid)+" -h "+str(n0.hwId)+" -p "+str(n0.TCPPort)+" > /home/out_"+str(n0.nodeid)+".log'", \
           ports=dict(zip((str(n.TCPPort)+'/tcp' for n in self.nodes), (n.TCPPort for n in self.nodes))), name="Meshtastic", detach=True, auto_remove=True, user="root", volumes={"Meshtasticator": {'bind': '/home/', 'mode': 'rw'}})
         for n in self.nodes[1:]:
