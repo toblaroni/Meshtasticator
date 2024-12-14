@@ -1,6 +1,6 @@
 # Interactive simulator
 
-The Python script *interactiveSim.py* uses the [Linux native application of Meshtastic](https://meshtastic.org/docs/software/linux-native) in order to simulate multiple instances of the device software. They will communicate using TCP via this script as if they did using their LoRa chip. The simulator will forward a message from the sender to all nodes that can hear it, based on their simulated positions and the pathloss model used (see [Pathloss model](#Pathloss-model)). Collisions of packets are not (yet) simulated.  
+The Python script *interactiveSim.py* uses the [Linux native application of Meshtastic](https://meshtastic.org/docs/software/linux-native) in order to simulate multiple instances of the device software. They will communicate using TCP via this script as if they did using their LoRa chip. The simulator will forward a message from the sender to all nodes that can hear it, based on their simulated positions and the pathloss model used (see [Pathloss model](#Pathloss-model)).
 
 ## Usage
 Please `git clone` or download this repository, navigate to the Meshtasticator folder (optionally create a virtual environment) and install the necessary requirements using: 
@@ -53,15 +53,16 @@ To predefine what you want to send, you can also modify the script *interactiveS
 The nodes first exchange their NodeInfo. Afterwards, you can let them send messages. Once the nodes are done sending, you can close them by pressing Control+c or just wait for the timeout set at the end of the 'try' clause. 
 
 ## Tips and tricks
-1. Depending on the number of nodes, exchanging the NodeInfo might take quite some time. You can also disable these by removing ```new NodeInfoModule()``` (and other modules) in *src/modules/Modules.cpp* in the device firmware. This works because the simulator already knows the NodeIDs. 
+1. If you want the nodes to emulate packet collisions, add `"USERPREFS_SIMRADIO_EMULATE_COLLISIONS": "true"` to the `userPrefs.jsonc` file in the firmware. Then, add the '-c' argument when starting the simulation to also gather statistics like the number of bad packets received.
+2. Depending on the number of nodes, exchanging the NodeInfo might take quite some time. You can also disable these by removing ```new NodeInfoModule()``` (and other modules) in *src/modules/Modules.cpp* in the device firmware. This works because the simulator already knows the NodeIDs. 
 
-2. If you placed the nodes yourself, after a simulation the number of nodes, their coordinates and configuration are automatically saved and you can rerun the scenario with: 
+3. If you placed the nodes yourself, after a simulation the number of nodes, their coordinates and configuration are automatically saved and you can rerun the scenario with: 
 
   ```python3 interactiveSim.py --from-file```
 
   If you want to change any of the configurations, adapt the file *out/nodeConfig.yaml* before running it with the above command.
 
-3. The simulator can essentially do the same configurations as the Python CLI. If you use ```sim.getNodeById(<id>)``` in *interactiveSim.py*, you can call a function in the Node class of the CLI, e.g. ```.setURL(<'YOUR_URL'>)```.
+4. The simulator can essentially do the same configurations as the Python CLI. If you use ```sim.getNodeById(<id>)``` in *interactiveSim.py*, you can call a function in the Node class of the CLI, e.g. ```.setURL(<'YOUR_URL'>)```.
 
 ## Pathloss model
 The simulator uses a pathloss model to calculate how well a signal will propagate. Note that this is only a rough estimation of the physical environment and will not be 100% accurate, as it depends on a lot of factors. The implemented pathloss models are:
