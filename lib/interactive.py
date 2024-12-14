@@ -49,6 +49,12 @@ class interactiveNode():
     self.timestamps = []
     self.channelUtilization = []
     self.airUtilTx = []
+    self.numPacketsTx = 0
+    self.numPacketsRx = 0
+    self.numPacketsRxBad = 0
+    self.numRxDupe = 0
+    self.numTxRelay = 0
+    self.numTxRelayCanceled = 0
 
 
   def addInterface(self, iface):
@@ -56,6 +62,7 @@ class interactiveNode():
 
   
   def setConfig(self):
+    requiresReboot = False
     # Set a long and short name
     p = admin_pb2.AdminMessage()
     p.set_owner.long_name = "Node "+str(self.nodeid)
@@ -68,18 +75,21 @@ class interactiveNode():
       p.set_config.lora.CopyFrom(loraConfig)
       self.iface.localNode._sendAdmin(p)
     if self.isRouter:
+      requiresReboot = True
       deviceConfig = self.iface.localNode.localConfig.device
       setattr(deviceConfig, 'role', "ROUTER")
       p = admin_pb2.AdminMessage()
       p.set_config.device.CopyFrom(deviceConfig)
       self.iface.localNode._sendAdmin(p)
     elif self.isRepeater:
+      requiresReboot = True
       deviceConfig = self.iface.localNode.localConfig.device
       setattr(deviceConfig, 'role', 4)
       p = admin_pb2.AdminMessage()
       p.set_config.device.CopyFrom(deviceConfig)
       self.iface.localNode._sendAdmin(p)
     elif self.neighborInfo:
+      requiresReboot = True
       moduleConfig = self.iface.localNode.moduleConfig.neighbor_info
       setattr(moduleConfig, 'enabled', 1)
       setattr(moduleConfig, 'update_interval', 30)
@@ -93,6 +103,8 @@ class interactiveNode():
     lat = base_lat + (self.y * conv_factor)
     lon = base_lon + (self.x * conv_factor)
     self.iface.sendPosition(lat, lon, 0)
+
+    return requiresReboot
 
 
   def addAdminChannel(self):
@@ -146,7 +158,7 @@ class interactiveGraph(Graph):
       self.fig.canvas.mpl_connect("motion_notify_event", self.hover)
       self.fig.canvas.mpl_connect("button_press_event", self.onClick)
       self.fig.canvas.mpl_connect("close_event", self.onClose)
-      print("Enter a message ID on the plot to show its route.")
+      print("On the scenario plot, enter a message ID to show its route. Close the figure to exit.")
       self.fig.canvas.draw_idle()
       self.fig.canvas.get_tk_widget().focus_set()
       plt.show()
@@ -300,6 +312,23 @@ class interactiveGraph(Graph):
       plt.xlabel('Time (s)')
       plt.legend(title='Node ID')
 
+    if any(n.numPacketsRxBad > 0 for n in nodes): # Only really interesting if there are bad packets (meaning collisions)
+      stats = ['Tx', 'Rx', 'Rx bad', 'Rx dupe', 'Tx relay', 'Tx relay canceled']
+      num_stats = len(stats)
+      num_nodes = len(nodes)
+      x = np.arange(num_stats)
+      _, ax = plt.subplots(figsize=(12, 6))
+      data = [[n.numPacketsTx for n in nodes], [n.numPacketsRx for n in nodes], [n.numPacketsRxBad for n in nodes], [n.numRxDupe for n in nodes], [n.numTxRelay for n in nodes], [n.numTxRelayCanceled for n in nodes]]
+      bar_width = 0.15
+      for i in range(num_nodes):
+          x_positions = x + (i - (num_nodes / 2)) * bar_width + bar_width / 2 
+          ax.bar(x_positions, [row[i] for row in data], width=bar_width, label=nodes[i].nodeid)
+          ax.set_xticks([]) 
+      ax.set_ylabel('Number of packets')
+      ax.set_xticks(x) 
+      ax.set_xticklabels(stats) 
+      ax.legend(title='Node ID')
+      ax.set_title('Packet statistics')
 
 class interactiveSim(): 
   def __init__(self):
@@ -328,6 +357,8 @@ class interactiveSim():
       self.nodes.append(node)
       self.graph.addNode(node)
 
+    print("Booting nodes...")
+
     if self.docker:
       try:
         import docker
@@ -336,19 +367,25 @@ class interactiveSim():
         exit(1)
       n0 = self.nodes[0]
       dockerClient = docker.from_env()
-      startNode = f"{MESHTASTICD_PATH_DOCKER} -e "
+      startNode = f"{MESHTASTICD_PATH_DOCKER} "
+      if self.removeConfig:
+        startNode += "-e "
 
       if sys.platform == "darwin":
         self.container = dockerClient.containers.run(DEVICE_SIM_DOCKER_IMAGE, startNode + "-d /home/node"+str(n0.nodeid)+" -h "+str(n0.hwId)+" -p "+str(n0.TCPPort), \
           ports=dict(zip((str(n.TCPPort)+'/tcp' for n in self.nodes), (n.TCPPort for n in self.nodes))), name="Meshtastic", detach=True, auto_remove=True, user="root")
         for n in self.nodes[1:]:
-          self.container.exec_run(f"{MESHTASTICD_PATH_DOCKER} -e -d /home/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort), detach=True, user="root") 
+          if self.emulateCollisions:
+            time.sleep(2) # Wait a bit to avoid immediate collisions when starting multiple nodes 
+          self.container.exec_run(startNode + "-d /home/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort), detach=True, user="root") 
         print("Docker container with name "+str(self.container.name)+" is started.")
       else: 
         self.container = dockerClient.containers.run(DEVICE_SIM_DOCKER_IMAGE, \
           "sh -c '" + startNode + "-d /home/node"+str(n0.nodeid)+" -h "+str(n0.hwId)+" -p "+str(n0.TCPPort)+" > /home/out_"+str(n0.nodeid)+".log'", \
           ports=dict(zip((str(n.TCPPort)+'/tcp' for n in self.nodes), (n.TCPPort for n in self.nodes))), name="Meshtastic", detach=True, auto_remove=True, user="root", volumes={"Meshtasticator": {'bind': '/home/', 'mode': 'rw'}})
         for n in self.nodes[1:]:
+          if self.emulateCollisions:
+            time.sleep(2) # Wait a bit to avoid immediate collisions when starting multiple nodes 
           self.container.exec_run("sh -c '" + startNode + "-d /home/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort)+" > /home/out_"+str(n.nodeid)+".log'", detach=True, user="root") 
         print("Docker container with name "+str(self.container.name)+" is started.")
         print("You can check the device logs using 'docker exec -it "+str(self.container.name) +" cat /home/out_x.log', where x is the node number.")
@@ -366,9 +403,15 @@ class interactiveSim():
           newTerminal = "gnome-terminal --title='Node "+str(n.nodeid)+"' -- "
         else: 
           newTerminal = "xterm -title 'Node "+str(n.nodeid)+"' -e "
-        startNode = "program -d "+os.path.expanduser('~')+"/.portduino/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort) + " -e &"
+        startNode = "program -d "+os.path.expanduser('~')+"/.portduino/node"+str(n.nodeid)+" -h "+str(n.hwId)+" -p "+str(n.TCPPort)
+        if self.removeConfig: 
+          startNode = startNode + " -e &"
+        else:
+          startNode = startNode + " &"
         cmdString = newTerminal+pathToProgram+startNode
         os.system(cmdString)  
+        if self.emulateCollisions and n.nodeid != len(self.nodes)-1:
+            time.sleep(2) # Wait a bit to avoid immediate collisions when starting multiple nodes 
 
     if self.forwardToClient:
       print("Please connect with the client to TCP port", TCP_PORT_CLIENT, "...")
@@ -385,7 +428,6 @@ class interactiveSim():
       self.nodeThread.start()
       self.clientThread.start()
     else:
-      print("Waiting for nodes to boot...")
       time.sleep(4)  # Allow instances to start up their TCP service 
 
     try:
@@ -397,7 +439,9 @@ class interactiveSim():
         iface0.localNode.nodeNum = self.nodes[0].hwId
         iface0.connect() # real connection now
       for n in self.nodes:
-        n.setConfig()
+        requiresReboot = n.setConfig()
+        if requiresReboot and self.emulateCollisions and n.nodeid != len(self.nodes)-1:
+          time.sleep(2) # Wait a bit to avoid immediate collisions when starting multiple nodes
       self.reconnectNodes()
       pub.subscribe(self.onReceive, "meshtastic.receive.simulator")
       pub.subscribe(self.onReceiveMetrics, "meshtastic.receive.telemetry")
@@ -417,12 +461,15 @@ class interactiveSim():
     parser.add_argument('--from-file', action='store_true')
     parser.add_argument('-f', '--forward', action='store_true')
     parser.add_argument('-p', '--program', type=str, default=os.getcwd() + "/")
+    parser.add_argument('-c', '--collisions', action='store_true')
     args = parser.parse_args()
     # print(args)
 
     self.script = args.script
     self.docker = args.docker
     self.forwardToClient = args.forward
+    self.emulateCollisions = args.collisions
+    self.removeConfig = not args.from_file
     if args.from_file:
       foundNodes = True
       with open(os.path.join("out", "nodeConfig.yaml"), 'r') as file:
@@ -457,6 +504,8 @@ class interactiveSim():
         except OSError:
           print("Trying to reconnect to node...")
           time.sleep(1)
+      if self.emulateCollisions and n.nodeid != len(self.nodes)-1:
+        time.sleep(2) # Wait a bit to avoid immediate collisions when starting multiple nodes
 
 
   def forwardPacket(self, receivers, packet, rssis, snrs): 
@@ -565,6 +614,12 @@ class interactiveSim():
   def requestPosition(self, fromNode, toNode):
     self.getNodeIfaceById(fromNode).sendPosition(destinationId=self.nodeIdToHwId(toNode), wantResponse=True)
 
+  
+  def requestLocalStats(self, toNode):
+    r = telemetry_pb2.Telemetry()
+    r.local_stats.CopyFrom(telemetry_pb2.LocalStats()) 
+    self.getNodeIfaceById(toNode).sendData(r, destinationId=self.nodeIdToHwId(toNode), portNum=portnums_pb2.PortNum.TELEMETRY_APP, wantResponse=True)
+
 
   def getNodeIfaceById(self, id):
     for n in self.nodes:
@@ -640,6 +695,20 @@ class interactiveSim():
             if 'airUtilTx' in deviceMetrics:
               airUtilTx = float(deviceMetrics['airUtilTx'])
             fromNode.airUtilTx.append(airUtilTx)
+      elif 'localStats' in telemetryDict:
+        localStats = telemetryDict['localStats']
+        if 'numPacketsTx' in localStats:
+          fromNode.numPacketsTx = localStats['numPacketsTx']
+        if 'numPacketsRx' in localStats:
+          fromNode.numPacketsRx = localStats['numPacketsRx']
+        if 'numPacketsRxBad' in localStats:
+          fromNode.numPacketsRxBad = localStats['numPacketsRxBad']
+        if 'numRxDupe' in localStats:
+          fromNode.numRxDupe = localStats['numRxDupe']
+        if 'numTxRelay' in localStats:
+          fromNode.numTxRelay = localStats['numTxRelay']
+        if 'numTxRelayCanceled' in localStats:
+          fromNode.numTxRelayCanceled = localStats['numTxRelayCanceled']
 
 
   def onReceiveAll(self, interface, packet):
@@ -843,7 +912,11 @@ class CommandProcessor(cmd.Cmd):
 
     def do_plot(self, line):
         """plot
-        Plot the routes of messages sent and airtime statistics.."""
+        Plot the routes of messages sent and airtime statistics."""
+        if self.sim.emulateCollisions:
+          for n in self.sim.nodes:
+            self.sim.requestLocalStats(n.nodeid)
+          time.sleep(1)
         self.sim.graph.plotMetrics(self.sim.nodes)
         self.sim.graph.initRoutes(self.sim)
         return True
