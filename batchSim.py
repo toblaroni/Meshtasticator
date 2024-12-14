@@ -25,6 +25,7 @@ class MeshNode():
 			self.z = nodeConfig['z']
 			self.isRouter = nodeConfig['isRouter']
 			self.isRepeater = nodeConfig['isRepeater']
+			self.isClientMute = nodeConfig['isClientMute']
 			self.hopLimit = nodeConfig['hopLimit']
 			self.antennaGain = nodeConfig['antennaGain']
 		else: 
@@ -32,6 +33,7 @@ class MeshNode():
 			self.z = conf.HM
 			self.isRouter = conf.router
 			self.isRepeater = False
+			self.isClientMute = False
 			self.hopLimit = conf.hopLimit
 			self.antennaGain = conf.GL
 		self.messageSeq = messageSeq
@@ -209,7 +211,7 @@ class MeshNode():
 					self.packets.append(pAck)
 					self.env.process(self.transmit(pAck))
         # FloodingRouter: rebroadcasting received message 
-				elif not p.destId == self.nodeid and not ackReceived and not realAckReceived and p.hopLimit > 0:
+				elif not p.destId == self.nodeid and not ackReceived and not realAckReceived and not self.isClientMute and p.hopLimit > 0:
 					verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
 					pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None) 
 					pNew.hopLimit = p.hopLimit-1

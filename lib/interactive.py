@@ -32,6 +32,7 @@ class interactiveNode():
       self.z = nodeConfig['z']
       self.isRouter = nodeConfig['isRouter']
       self.isRepeater = nodeConfig['isRepeater']
+      self.isClientMute = nodeConfig['isClientMute']
       self.hopLimit = nodeConfig['hopLimit']
       self.antennaGain = nodeConfig['antennaGain']
       self.neighborInfo = nodeConfig['neighborInfo']
@@ -40,6 +41,7 @@ class interactiveNode():
       self.z = conf.HM
       self.isRouter = conf.router
       self.isRepeater = False
+      self.isClientMute = False
       self.hopLimit = conf.hopLimit
       self.antennaGain = conf.GL
       self.neighborInfo = False
@@ -74,6 +76,7 @@ class interactiveNode():
       p = admin_pb2.AdminMessage()
       p.set_config.lora.CopyFrom(loraConfig)
       self.iface.localNode._sendAdmin(p)
+
     if self.isRouter:
       requiresReboot = True
       deviceConfig = self.iface.localNode.localConfig.device
@@ -84,11 +87,19 @@ class interactiveNode():
     elif self.isRepeater:
       requiresReboot = True
       deviceConfig = self.iface.localNode.localConfig.device
-      setattr(deviceConfig, 'role', 4)
+      setattr(deviceConfig, 'role', "REPEATER")
       p = admin_pb2.AdminMessage()
       p.set_config.device.CopyFrom(deviceConfig)
       self.iface.localNode._sendAdmin(p)
-    elif self.neighborInfo:
+    elif self.isClientMute:
+      requiresReboot = True
+      deviceConfig = self.iface.localNode.localConfig.device
+      setattr(deviceConfig, 'role', "CLIENT_MUTE")
+      p = admin_pb2.AdminMessage()
+      p.set_config.device.CopyFrom(deviceConfig)
+      self.iface.localNode._sendAdmin(p)
+    
+    if self.neighborInfo:
       requiresReboot = True
       moduleConfig = self.iface.localNode.moduleConfig.neighbor_info
       setattr(moduleConfig, 'enabled', 1)

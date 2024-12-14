@@ -62,6 +62,7 @@ def genScenario():
 	nodeZ = []
 	nodeRouter = []
 	nodeRepeater = []
+	nodeClientMute = []
 	nodeHopLimit = []
 	nodeTxts = []
 	gains = []
@@ -80,12 +81,12 @@ def genScenario():
 	button_ax = fig.add_axes([0.37, 0.05, 0.2, 0.06])
 	button = Button(button_ax, 'Start simulation', color='red', hovercolor='green')
 	# Role selection
-	role_ax = fig.add_axes([0.86, 0.61, 0.12, 0.2])
+	role_ax = fig.add_axes([0.84, 0.61, 0.12, 0.2])
 	role_ax.set_axis_off()
-	roleButton = RadioButtons(role_ax, ['Client', 'Router', 'Repeater'], active=1 if conf.router else 0)
+	roleButton = RadioButtons(role_ax, ['Client', 'Client mute', 'Router', 'Repeater'], active=1 if conf.router else 0)
 	role_ax.set_visible(False)
 	# HopLimit slider
-	slider_ax = fig.add_axes([0.86, 0.34, 0.1, 0.25])
+	slider_ax = fig.add_axes([0.86, 0.34, 0.1, 0.22])
 	slider = Slider(slider_ax, 'HopLimit', 0, 7, conf.hopLimit, valstep=1, orientation="vertical")
 	slider_ax.set_visible(False)
 	# Height textbox
@@ -141,6 +142,7 @@ def genScenario():
 		nodeZ.append(float(height_textbox.text))
 		nodeRouter.append(roleButton.value_selected == 'Router')
 		nodeRepeater.append(roleButton.value_selected == 'Repeater')
+		nodeClientMute.append(roleButton.value_selected == 'Client mute')
 		nodeHopLimit.append(slider.val)
 		gains.append(float(gain_textbox.text))
 		neighborInfo.append(bool(0))
@@ -156,6 +158,7 @@ def genScenario():
 				nodeZ.append(float(height_textbox.text))
 				nodeRouter.append(roleButton.value_selected == 'Router')
 				nodeRepeater.append(roleButton.value_selected == 'Repeater')
+				nodeClientMute.append(roleButton.value_selected == 'Client mute')
 				nodeHopLimit.append(slider.val)
 				gains.append(float(gain_textbox.text))
 				neighborInfo.append(bool(0))
@@ -174,7 +177,7 @@ def genScenario():
 	plt.show()
 	# Save node configuration in a dictionary
 	nodeDict = {n: {'x': nodeX[n], 'y': nodeY[n], 'z': nodeZ[n], \
-		'isRouter': nodeRouter[n], 'isRepeater': nodeRepeater[n], \
+		'isRouter': nodeRouter[n], 'isRepeater': nodeRepeater[n], 'isClientMute': nodeClientMute[n], \
 		'hopLimit':nodeHopLimit[n], \
 		'antennaGain': gains[n], 'neighborInfo': neighborInfo[n]} for n in range(len(nodeX))}
 	if save:
