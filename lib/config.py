@@ -46,7 +46,7 @@ SENSMODEM = np.array([-121.5, -124.0, -126.5, -129.0, -131.5, -134.5, -137.0, -1
 # minimum received power for CAD (3dB less than sensitivity)
 CADMODEM = np.array([-124.5, -127.0, -129.5, -132.0, -134.5, -137.5, -140.0, -143.0])
 FREQ = REGION["freq_start"]+BWMODEM[MODEM]*CHANNEL_NUM
-HEADERLENGTH = 16  # number of Meshtastic header bytes 
+HEADERLENGTH = 32  # number of Meshtastic header bytes 
 ACKLENGTH = 2  # ACK payload in bytes
 NOISE_LEVEL = -119.25  # some noise level in dB, based on SNR_MIN and minimum receiver sensitivity
 GAMMA = 2.08  # PHY parameter
