@@ -14,7 +14,7 @@ GL = 0  # antenna gain of each node in dBi
 HM = 1.0  # height of each node in m
 
 ### Meshtastic specific ###
-hopLimit = 15  # default 3
+hopLimit = 3  # default 3
 router = False  # set role of each node as router (True) or normal client (False) 
 maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 ### End of Meshtastic specific ###
@@ -70,7 +70,11 @@ class ROUTER_TYPE(Enum):
     MANAGED_FLOOD = 'MANAGED_FLOOD'
     BLOOM = 'BLOOM'
 
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
+
+# Overwrite hop limit in the case of Bloom routing
+if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
+    hopLimit = 15
 
 BLOOM_FILTER_SIZE_BITS = 128
 BLOOM_FILTER_SIZE_BYTES = BLOOM_FILTER_SIZE_BITS // 8

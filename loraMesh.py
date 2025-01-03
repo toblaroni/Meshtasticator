@@ -223,7 +223,7 @@ class MeshNode():
 
 						rebroadcastProbabilityTest = random.random()
 						newCoverage = pNew.checkAdditionalCoverageRatio(p.coverageFilter)
-						rebroadcastProbability = 0.2 + (newCoverage * 2);
+						rebroadcastProbability = 0.2 + (newCoverage * 3);
 
 						'''
 						# Check if this node covers any additional nodes by providing the old packets coverage
@@ -245,9 +245,9 @@ class MeshNode():
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
 							self.packets.append(pNew)
 							self.env.process(self.transmit(pNew))
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 						else:
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, 'New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 
 
 if VERBOSE:
