@@ -233,7 +233,7 @@ class MeshNode():
 						# Piecewise logic for rebroadcast probability
 						# If we can add a single node, 80% chance of rebroadcast
 						if (newCoverageCount == 1):
-							rebroadcastProbability = 0.8
+							rebroadcastProbability = 0.65
 						# If we can add more than a single node, 100% chance of rebroadcast
 						elif (newCoverageCount > 1):
 							rebroadcastProbability = 1
