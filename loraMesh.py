@@ -221,28 +221,33 @@ class MeshNode():
 						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter)
 						pNew.hopLimit = p.hopLimit-1
 
+						rebroadcastProbabilityTest = random.random()
+						newCoverage = pNew.checkAdditionalCoverageRatio(p.coverageFilter)
+						rebroadcastProbability = 0.2 + (newCoverage * 2);
+
+						'''
 						# Check if this node covers any additional nodes by providing the old packets coverage
-						newCoverageCount = pNew.checkAdditionalCoverage(p.coverageFilter)
+						newCoverage = pNew.checkAdditionalCoverage(p.coverageFilter)
 
 						# Baseline rebroadcast probability is 0.2 to deal with FPR (False Positive Rate)
 						rebroadcastProbability = 0.2
-						rebroadcastProbabilityTest = random.random()
 						
 						# Piecewise logic for rebroadcast probability
 						# If we can add a single node, 80% chance of rebroadcast
-						if (newCoverageCount == 1):
+						if (newCoverage == 1):
 							rebroadcastProbability = 0.8
 						# If we can add more than a single node, 100% chance of rebroadcast
-						elif (newCoverageCount > 1):
+						elif (newCoverage > 1):
 							rebroadcastProbability = 1
-						
+						'''
+
 						# Check the random against the probability
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
 							self.packets.append(pNew)
 							self.env.process(self.transmit(pNew))
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage:', newCoverageCount, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 						else:
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage:', newCoverageCount, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 
 
 if VERBOSE:

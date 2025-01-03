@@ -78,6 +78,19 @@ class MeshPacket():
 				newCoverage += 1
 
 		return newCoverage
+	
+	def checkAdditionalCoverageRatio(self, previousCoverage):
+		if previousCoverage is None:
+			return 0
+
+		newCoverage = 0
+		numNodes = 0
+		for nodeid, is_sensed in enumerate(self.sensedByN):
+			numNodes += 1
+			if is_sensed and not previousCoverage.check(nodeid):
+				newCoverage += 1
+
+		return newCoverage / numNodes
 
 	# Checks if this packet offers addtional coverage compared to the previous packet
 	def checkCoverage(self, previousPacket):

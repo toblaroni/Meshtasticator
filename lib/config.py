@@ -14,7 +14,7 @@ GL = 0  # antenna gain of each node in dBi
 HM = 1.0  # height of each node in m
 
 ### Meshtastic specific ###
-hopLimit = 3  # default 3
+hopLimit = 15  # default 3
 router = False  # set role of each node as router (True) or normal client (False) 
 maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 ### End of Meshtastic specific ###
