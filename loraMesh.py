@@ -223,7 +223,7 @@ class MeshNode():
 
 						rebroadcastProbabilityTest = random.random()
 						newCoverage = pNew.checkAdditionalCoverageRatio(p.coverageFilter)
-						rebroadcastProbability = 0.2 + (newCoverage * 3);
+						rebroadcastProbability = conf.BASELINE_REBROADCAST_PROBABILITY + (newCoverage * conf.COVERAGE_RATIO_SCALE_FACTOR)
 
 						'''
 						# Check if this node covers any additional nodes by providing the old packets coverage
