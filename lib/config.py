@@ -1,3 +1,4 @@
+from enum import Enum
 import numpy as np
 
 
@@ -64,3 +65,12 @@ RANDOM = False
 # Initializers
 NR_NODES = None
 # End of initializers 
+
+class ROUTER_TYPE(Enum):
+    MANAGED_FLOOD = 'MANAGED_FLOOD'
+    BLOOM = 'BLOOM'
+
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
+
+BLOOM_FILTER_SIZE_BITS = 128
+BLOOM_FILTER_SIZE_BYTES = BLOOM_FILTER_SIZE_BITS // 8

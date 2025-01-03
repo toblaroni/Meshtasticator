@@ -1,4 +1,5 @@
 from lib.common import calcDist
+from lib.coverageFilter import CoverageFilter
 from .phy import *
 
 
@@ -7,7 +8,7 @@ random.seed(conf.SEED)
 
 
 class MeshPacket(): 
-	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId):
+	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, coverageFilter = None):
 		self.origTxNodeId = origTxNodeId
 		self.destId = destId
 		self.txNodeId = txNodeId
@@ -52,6 +53,35 @@ class MeshPacket():
 		self.ackReceived = False
 		self.hopLimit = tx_node.hopLimit
 
+		self.setCoverageFilter(coverageFilter)
+
+	def setCoverageFilter(self, coverageFilter):
+		if (coverageFilter is not None):
+			self.coverageFilter = coverageFilter
+		else:
+			self.coverageFilter = CoverageFilter()
+
+		for nodeid, is_sensed in self.sensedByN.items():
+			if is_sensed:
+				self.coverageFilter.add(nodeid)
+
+	def checkAdditionalCoverage(self, previousCoverage):
+		if previousCoverage is None:
+			return 0
+
+		newCoverage = 0
+		for nodeid, is_sensed in self.sensedByN.items():
+			if is_sensed and not previousCoverage.check(nodeid):
+				newCoverage += 1
+
+		return newCoverage
+
+	# Checks if this packet offers addtional coverage compared to the previous packet
+	def checkCoverage(self, previousPacket):
+		if previousPacket is None:
+			return 0
+		
+		
 
 class MeshMessage():
 	def __init__(self, origTxNodeId, destId, genTime, seq):
