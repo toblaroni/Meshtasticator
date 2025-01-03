@@ -242,9 +242,9 @@ class MeshNode():
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
 							self.packets.append(pNew)
 							self.env.process(self.transmit(pNew))
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage: ', newCoverageCount)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage: ', newCoverageCount, 'Rnd: ', rebroadcastProbabilityTest, 'Prob: ', rebroadcastProbability)
 						else:
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage: ', newCoverageCount)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage: ', newCoverageCount, 'Rnd: ', rebroadcastProbabilityTest, 'Prob: ', rebroadcastProbability)
 
 
 if VERBOSE:
