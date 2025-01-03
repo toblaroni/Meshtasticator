@@ -240,7 +240,8 @@ class MeshNode():
 						elif (newCoverage > 1):
 							rebroadcastProbability = 1
 						'''
-
+						# Clamp to values that make sense
+						rebroadcastProbability = max(0.0, min(1.0, rebroadcastProbability))
 						# Check the random against the probability
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
 							self.packets.append(pNew)
