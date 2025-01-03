@@ -61,7 +61,7 @@ class MeshPacket():
 		else:
 			self.coverageFilter = CoverageFilter()
 
-		for nodeid, is_sensed in self.sensedByN.items():
+		for nodeid, is_sensed in enumerate(self.sensedByN):
 			if is_sensed:
 				self.coverageFilter.add(nodeid)
 
@@ -70,7 +70,7 @@ class MeshPacket():
 			return 0
 
 		newCoverage = 0
-		for nodeid, is_sensed in self.sensedByN.items():
+		for nodeid, is_sensed in enumerate(self.sensedByN):
 			if is_sensed and not previousCoverage.check(nodeid):
 				newCoverage += 1
 
