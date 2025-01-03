@@ -90,7 +90,7 @@ class MeshPacket():
 			if is_sensed and not previousCoverage.check(nodeid):
 				newCoverage += 1
 
-		return newCoverage / numNodes
+		return float(newCoverage) / float(numNodes)
 
 	# Checks if this packet offers addtional coverage compared to the previous packet
 	def checkCoverage(self, previousPacket):
