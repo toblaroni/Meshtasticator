@@ -56,11 +56,14 @@ class MeshPacket():
 		self.setCoverageFilter(coverageFilter)
 
 	def setCoverageFilter(self, coverageFilter):
-		if (coverageFilter is not None):
-			self.coverageFilter = coverageFilter
-		else:
-			self.coverageFilter = CoverageFilter()
+		# Always create a new, empty CoverageFilter
+		self.coverageFilter = CoverageFilter()
 
+		# If there was a previous coverage filter, merge its bits into the new one
+		if coverageFilter is not None:
+			self.coverageFilter.merge(coverageFilter)
+
+		# Then add our own newly sensed coverage
 		for nodeid, is_sensed in enumerate(self.sensedByN):
 			if is_sensed:
 				self.coverageFilter.add(nodeid)
