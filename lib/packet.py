@@ -86,9 +86,10 @@ class MeshPacket():
 		newCoverage = 0
 		numNodes = 0
 		for nodeid, is_sensed in enumerate(self.sensedByN):
-			numNodes += 1
-			if is_sensed and not previousCoverage.check(nodeid):
-				newCoverage += 1
+			if is_sensed:
+				numNodes += 1
+				if not previousCoverage.check(nodeid):
+					newCoverage += 1
 
 		return float(newCoverage) / float(numNodes)
 
