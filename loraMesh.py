@@ -5,7 +5,7 @@ from lib.common import *
 from lib.discrete_event import *
 from lib.mac import *
 from lib.packet import *
-from . import config as conf
+from lib.config import config as conf
 
 VERBOSE = True
 random.seed(conf.SEED)
@@ -205,7 +205,7 @@ class MeshNode():
 					pAck = MeshPacket(self.nodes, self.nodeid, p.origTxNodeId, self.nodeid, conf.ACKLENGTH, messageSeq, env.now, False, True, p.seq) 
 					self.packets.append(pAck)
 					self.env.process(self.transmit(pAck))
-				# Rbroadcasting Logic for received message. This is a broadcast or a DM not meant for us.
+				# Rebroadcasting Logic for received message. This is a broadcast or a DM not meant for us.
 				elif not p.destId == self.nodeid:
 					# FloodingRouter: rebroadcast received packet
 					if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.MANAGED_FLOOD:
