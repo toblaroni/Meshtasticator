@@ -78,5 +78,9 @@ if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
 
 BLOOM_FILTER_SIZE_BITS = 128
 BLOOM_FILTER_SIZE_BYTES = BLOOM_FILTER_SIZE_BITS // 8
+
 COVERAGE_RATIO_SCALE_FACTOR = 4
-BASELINE_REBROADCAST_PROBABILITY = 0.2
+
+# Set this to non-zero value to make it possible that a 
+# node without any additional coverage may still rebroadcast
+BASELINE_REBROADCAST_PROBABILITY = 0.0
