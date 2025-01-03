@@ -39,6 +39,10 @@ class CoverageFilter:
         for i in range(conf.BLOOM_FILTER_SIZE_BYTES):
             self.bits_[i] = 0
 
+    def __str__(self) -> str:
+        """Return a human-readable representation of the filter's bits."""
+        return f"CoverageFilter(0x{self.bits_.hex()})"
+
     # ------------------------
     # Private / Helper Methods
     # ------------------------
