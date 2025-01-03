@@ -206,10 +206,10 @@ class MeshNode():
 					self.packets.append(pAck)
 					self.env.process(self.transmit(pAck))
 				# Rebroadcasting Logic for received message. This is a broadcast or a DM not meant for us.
-				elif not p.destId == self.nodeid:
+				elif not p.destId == self.nodeid and not ackReceived and not realAckReceived and p.hopLimit > 0:
 					# FloodingRouter: rebroadcast received packet
 					if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.MANAGED_FLOOD:
-						if not ackReceived and not realAckReceived and not self.isClientMute and p.hopLimit > 0:
+						if not self.isClientMute:
 							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
 							pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None) 
 							pNew.hopLimit = p.hopLimit-1
