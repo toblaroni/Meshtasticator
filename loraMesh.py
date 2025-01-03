@@ -219,9 +219,7 @@ class MeshNode():
 					elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
 						verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
 						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter)
-						
-						# Don't decrement hop limit
-						pNew.hopLimit = p.hopLimit
+						pNew.hopLimit = p.hopLimit-1
 
 						# Check if this node covers any additional nodes by providing the old packets coverage
 						newCoverageCount = pNew.checkAdditionalCoverage(p.coverageFilter)

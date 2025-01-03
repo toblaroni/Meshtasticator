@@ -222,7 +222,10 @@ class MeshNode():
 							self.env.process(self.transmit(pNew))
 					# BloomRouter: rebroadcast received packet
 					elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
+						verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
 						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter)
+						pNew.hopLimit = p.hopLimit-1
+
 						# Check if this node covers any additional nodes by providing the old packets coverage
 						newCoverageCount = pNew.checkAdditionalCoverage(p.coverageFilter)
 
@@ -242,9 +245,9 @@ class MeshNode():
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
 							self.packets.append(pNew)
 							self.env.process(self.transmit(pNew))
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage: ', newCoverageCount)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, '. New Coverage:', newCoverageCount, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 						else:
-							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage: ', newCoverageCount)
+							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, '. New Coverage:', newCoverageCount, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 
 
 if VERBOSE:
