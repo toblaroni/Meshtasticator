@@ -15,7 +15,8 @@ HM = 1.0  # height of each node in m
 
 ### Meshtastic specific ###
 hopLimit = 3  # default 3
-router = False  # set role of each node as router (True) or normal client (False) 
+router = False  # set role of each node as router (True) or normal client (False)
+numRoutersToInclude = 0 # Randomly select n number of nodes as routers and increase their coverage accordingly
 maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 ### End of Meshtastic specific ###
 
@@ -73,7 +74,7 @@ class ROUTER_TYPE(Enum):
 ######################################
 ####### SET ROUTER TYPE BELOW ########
 ######################################
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
 
 # Overwrite hop limit in the case of Bloom routing
 if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:

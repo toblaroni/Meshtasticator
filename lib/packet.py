@@ -58,6 +58,9 @@ class MeshPacket():
 	def setCoverageFilter(self, coverageFilter):
 		# Always create a new, empty CoverageFilter
 		self.coverageFilter = CoverageFilter()
+		
+		# Always add the transmitting node to the coverage filter
+		self.coverageFilter.add(self.txNodeId)
 
 		# If there was a previous coverage filter, merge its bits into the new one
 		if coverageFilter is not None:
