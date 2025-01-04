@@ -53,9 +53,11 @@ class MeshPacket():
 		self.ackReceived = False
 		self.hopLimit = tx_node.hopLimit
 
-		self.setCoverageFilter(coverageFilter)
+		self.previousCoverageFilter = coverageFilter;
+		self.additionalCoverageRatio = 0.0;
+		self.setCoverageFilter()
 
-	def setCoverageFilter(self, coverageFilter):
+	def setCoverageFilter(self):
 		# Always create a new, empty CoverageFilter
 		self.coverageFilter = CoverageFilter()
 		
@@ -63,46 +65,39 @@ class MeshPacket():
 		self.coverageFilter.add(self.txNodeId)
 
 		# If there was a previous coverage filter, merge its bits into the new one
-		if coverageFilter is not None:
-			self.coverageFilter.merge(coverageFilter)
+		if self.previousCoverageFilter is not None:
+			self.coverageFilter.merge(self.previousCoverageFilter)
 
 		# Then add our own newly sensed coverage
 		for nodeid, is_sensed in enumerate(self.sensedByN):
 			if is_sensed:
 				self.coverageFilter.add(nodeid)
-
-	def checkAdditionalCoverage(self, previousCoverage):
-		if previousCoverage is None:
-			return 0
-
-		newCoverage = 0
-		for nodeid, is_sensed in enumerate(self.sensedByN):
-			if is_sensed and not previousCoverage.check(nodeid):
-				newCoverage += 1
-
-		return newCoverage
 	
-	def checkAdditionalCoverageRatio(self, previousCoverage):
-		if previousCoverage is None:
-			return 0
+	def refreshAdditionalCoverageRatio(self):
+		# If we don't have previous coverage, all coverage is new!
+		if self.previousCoverageFilter is None:
+			return 1
 
 		newCoverage = 0
 		numNodes = 0
 		for nodeid, is_sensed in enumerate(self.sensedByN):
 			if is_sensed:
 				numNodes += 1
-				if not previousCoverage.check(nodeid):
+				if not self.previousCoverageFilter.check(nodeid):
 					newCoverage += 1
 
-		return float(newCoverage) / float(numNodes)
+		self.additionalCoverageRatio = float(newCoverage) / float(numNodes)
+	
+	def getRebroadcastProbability(self):
+		self.refreshAdditionalCoverageRatio()
 
-	# Checks if this packet offers addtional coverage compared to the previous packet
-	def checkCoverage(self, previousPacket):
-		if previousPacket is None:
-			return 0
-		
-		
+		rebroadcastProbability = conf.BASELINE_REBROADCAST_PROBABILITY + (self.additionalCoverageRatio * conf.COVERAGE_RATIO_SCALE_FACTOR)
 
+		# Clamp to values that make sense
+		rebroadcastProbability = max(0.0, min(1.0, rebroadcastProbability))
+
+		return rebroadcastProbability
+	
 class MeshMessage():
 	def __init__(self, origTxNodeId, destId, genTime, seq):
 		self.origTxNodeId = origTxNodeId

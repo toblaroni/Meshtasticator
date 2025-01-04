@@ -301,6 +301,40 @@ def plotSchedule(packets, messages):
 	fig.canvas.mpl_connect('button_press_event', onclick)
 	drawSchedule(0)
 
+def plotRebroadcastProbabilityModels():
+	x = np.linspace(0, 1, 100)
+	# (1) Sigmoid
+	midpoint = 0.3
+	steepness = 10.0
+	y_sigmoid = 1 / (1 + np.exp(-steepness * (x - midpoint)))
+
+	# (2) Exponential
+	k = 5.0
+	y_exp = 1 - np.exp(-k * x)
+
+	# (3) Power
+	n = 2.0
+	y_power = x ** n
+
+	# (4) Sigmoid + 20% Floor
+	floor_prob = 0.20
+	y_sigmoid_floor = np.maximum(floor_prob, y_sigmoid)
+
+	y_factor = conf.BASELINE_REBROADCAST_PROBABILITY + (x * conf.COVERAGE_RATIO_SCALE_FACTOR)
+	y_factor = np.clip(y_factor, 0.0, 1.0)
+
+	plt.figure(figsize=(10,7))
+	plt.plot(x, y_sigmoid, label='Sigmoid', lw=2)
+	plt.plot(x, y_exp, label='Exponential', lw=2)
+	plt.plot(x, y_power, label='Power (n=2)', lw=2)
+	plt.plot(x, y_factor, label='Linear Factor (f='+str(conf.COVERAGE_RATIO_SCALE_FACTOR)+')', lw=2)
+	plt.plot(x, y_sigmoid_floor, label='Sigmoid + 0.2 floor', lw=2, linestyle='--')
+	plt.title("Comparison of Nonlinear Probability Curves")
+	plt.xlabel("Coverage Ratio (0 to 1)")
+	plt.ylabel("Rebroadcast Probability (0 to 1)")
+	plt.grid(True)
+	plt.legend()
+	plt.show()
 
 def move_figure(fig, x, y):
   fig.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
