@@ -70,6 +70,9 @@ class ROUTER_TYPE(Enum):
     MANAGED_FLOOD = 'MANAGED_FLOOD'
     BLOOM = 'BLOOM'
 
+######################################
+####### SET ROUTER TYPE BELOW ########
+######################################
 SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
 
 # Overwrite hop limit in the case of Bloom routing
