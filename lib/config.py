@@ -70,7 +70,7 @@ NR_NODES = None
 class ROUTER_TYPE(Enum):
     MANAGED_FLOOD = 'MANAGED_FLOOD'
     BLOOM = 'BLOOM'
-
+    
 ######################################
 ####### SET ROUTER TYPE BELOW ########
 ######################################

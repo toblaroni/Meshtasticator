@@ -256,8 +256,8 @@ delays = []
 packetsAtN = [[] for _ in range(conf.NR_NODES)]
 messageSeq = 0
 
-if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
-	plotRebroadcastProbabilityModels();
+if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.SHOW_PROBABILITY_FUNCTION_COMPARISON:
+	plotRebroadcastProbabilityModels()
 
 graph = Graph()
 for i in range(conf.NR_NODES):
