@@ -4,11 +4,11 @@ import numpy as np
 
 MODEL = 5  # Pathloss model to use (see README)
 
-XSIZE = 7500  # horizontal size of the area to simulate in m 
-YSIZE = 7500  # vertical size of the area to simulate in m
+XSIZE = 15000  # horizontal size of the area to simulate in m 
+YSIZE = 15000  # vertical size of the area to simulate in m
 OX = 0.0  # origin x-coordinate
 OY = 0.0  # origin y-coordinate
-MINDIST = 10  # minimum distance between each node in the area in m
+MINDIST = 50  # minimum distance between each node in the area in m
 
 GL = 0  # antenna gain of each node in dBi
 HM = 1.0  # height of each node in m
@@ -23,7 +23,7 @@ maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 MODEM = 4  # LoRa modem to use: 0 = ShortFast, 1 = Short Slow, ... 7 = Very Long Slow (default 4 is LongFast)
 PERIOD = 100000  # mean period of generating a new message with exponential distribution in ms
 PACKETLENGTH = 40  # payload in bytes  
-SIMTIME = 200000  # duration of one simulation in ms 
+SIMTIME = 1200000  # duration of one simulation in ms 
 INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                            # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
 COLLISION_DUE_TO_INTERFERENCE = False
@@ -70,7 +70,7 @@ class ROUTER_TYPE(Enum):
     MANAGED_FLOOD = 'MANAGED_FLOOD'
     BLOOM = 'BLOOM'
 
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
 
 # Overwrite hop limit in the case of Bloom routing
 if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:

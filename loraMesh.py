@@ -47,6 +47,8 @@ class MeshNode():
 		self.usefulPackets = 0
 		self.txAirUtilization = 0
 		self.airUtilization = 0
+		self.droppedByDelay = 0
+		self.droppedByCoverage = 0
 
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
@@ -249,7 +251,9 @@ class MeshNode():
 							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 						else:
 							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, 'New Coverage:', newCoverage, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
-
+							self.droppedByCoverage += 1
+				else:
+					self.droppedByDelay += 1
 
 if VERBOSE:
 	def verboseprint(*args, **kwargs): 
@@ -311,6 +315,10 @@ if nrReceived != 0:
 	print("Percentage of received packets containing new message:", round(usefulness*100, 2))
 else:
 	print('No packets received.')
+delayDropped = sum(n.droppedByDelay for n in nodes)
+print("Number of packets dropped by delay/hop limit:", delayDropped)
+coverageDropped = sum(n.droppedByCoverage for n in nodes)
+print("Number of packets dropped by coverage:", coverageDropped)
 graph.save()
 
 if conf.PLOT:
