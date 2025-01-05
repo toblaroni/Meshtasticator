@@ -339,7 +339,7 @@ def plotRebroadcastProbabilityModels():
 	plt.plot(x, y_power, label='Power (n=2)', lw=2)
 	plt.plot(x, y_factor, label='Linear Factor (f='+str(conf.COVERAGE_RATIO_SCALE_FACTOR)+')', lw=2)
 	plt.plot(x, y_sigmoid_floor, label='Sigmoid + 0.2 floor', lw=2, linestyle='--')
-	plt.title("Comparison of Nonlinear Probability Curves")
+	plt.title("Comparison of Probability Functions")
 	plt.xlabel("Coverage Ratio (0 to 1)")
 	plt.ylabel("Rebroadcast Probability (0 to 1)")
 	plt.grid(True)
