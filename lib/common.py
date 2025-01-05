@@ -34,6 +34,16 @@ def getParams(args):
 			else:
 				conf.NR_NODES = int(args[1])
 				config = [None for _ in range(conf.NR_NODES)]
+				try:
+					# Attempt to convert the string args[2] into a valid enum member
+					routerType = conf.ROUTER_TYPE(args[2])
+					conf.SELECTED_ROUTER_TYPE = routerType
+				except ValueError:
+					# If it fails, print possible values
+					valid_types = [member.name for member in conf.ROUTER_TYPE]
+					print(f"Invalid router type: {args[2]}")
+					print(f"Router type must be one of: {', '.join(valid_types)}")
+					exit(1)
 		else: 
 			config = genScenario()
 		if config[0] is not None:
