@@ -8,7 +8,7 @@ random.seed(conf.SEED)
 
 
 class MeshPacket(): 
-	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, coverageFilter = None):
+	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, coverageFilter = None, prevNodesInCovFilter = 0):
 		self.origTxNodeId = origTxNodeId
 		self.destId = destId
 		self.txNodeId = txNodeId
@@ -53,8 +53,9 @@ class MeshPacket():
 		self.ackReceived = False
 		self.hopLimit = tx_node.hopLimit
 
-		self.previousCoverageFilter = coverageFilter;
-		self.additionalCoverageRatio = 0.0;
+		self.previousCoverageFilter = coverageFilter
+		self.totalNodesInCoverageFilter = prevNodesInCovFilter
+		self.additionalCoverageRatio = 0.0
 		self.setCoverageFilter()
 
 	def setCoverageFilter(self):
@@ -86,6 +87,7 @@ class MeshPacket():
 				if not self.previousCoverageFilter.check(nodeid):
 					newCoverage += 1
 
+		self.totalNodesInCoverageFilter += newCoverage
 		self.additionalCoverageRatio = float(newCoverage) / float(numNodes)
 	
 	def getRebroadcastProbability(self):

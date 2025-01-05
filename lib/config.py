@@ -8,7 +8,7 @@ XSIZE = 15000  # horizontal size of the area to simulate in m
 YSIZE = 15000  # vertical size of the area to simulate in m
 OX = 0.0  # origin x-coordinate
 OY = 0.0  # origin y-coordinate
-MINDIST = 50  # minimum distance between each node in the area in m
+MINDIST = 15  # minimum distance between each node in the area in m
 
 GL = 0  # antenna gain of each node in dBi
 HM = 1.0  # height of each node in m
@@ -86,10 +86,10 @@ BLOOM_FILTER_SIZE_BYTES = BLOOM_FILTER_SIZE_BITS // 8
 
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
-COVERAGE_RATIO_SCALE_FACTOR = 4
+COVERAGE_RATIO_SCALE_FACTOR = 3.0
 
 # Set this to non-zero value to make it possible that a 
 # node without any additional coverage may still rebroadcast
 BASELINE_REBROADCAST_PROBABILITY = 0.0
 
-SHOW_PROBABILITY_FUNCTION_COMPARISON = True
+SHOW_PROBABILITY_FUNCTION_COMPARISON = False

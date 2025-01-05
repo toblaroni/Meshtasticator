@@ -49,6 +49,8 @@ class MeshNode():
 		self.airUtilization = 0
 		self.droppedByDelay = 0
 		self.droppedByCoverage = 0
+		self.coverageBeforeDrop = 0
+		self.rebroadcastPackets = 0
 
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
@@ -220,7 +222,7 @@ class MeshNode():
 					# BloomRouter: rebroadcast received packet
 					elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
 						verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
-						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter)
+						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter, p.totalNodesInCoverageFilter)
 						pNew.hopLimit = p.hopLimit-1
 
 						rebroadcastProbabilityTest = random.random()
@@ -228,12 +230,14 @@ class MeshNode():
 
 						# Check the random against the probability
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
+							self.rebroadcastPackets += 1
 							self.packets.append(pNew)
 							self.env.process(self.transmit(pNew))
 							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 						else:
 							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
 							self.droppedByCoverage += 1
+							self.coverageBeforeDrop += p.totalNodesInCoverageFilter
 				else:
 					self.droppedByDelay += 1
 
@@ -306,6 +310,10 @@ delayDropped = sum(n.droppedByDelay for n in nodes)
 print("Number of packets dropped by delay/hop limit:", delayDropped)
 coverageDropped = sum(n.droppedByCoverage for n in nodes)
 print("Number of packets dropped by coverage:", coverageDropped)
+avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(sum(n.rebroadcastPackets for n in nodes))
+print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
+estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
+print('Est. Coverage Filter FPR:', round(estimatedCoverageFPR, 2), '%')
 graph.save()
 
 if conf.PLOT:
