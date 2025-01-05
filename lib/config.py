@@ -16,7 +16,6 @@ HM = 1.0  # height of each node in m
 ### Meshtastic specific ###
 hopLimit = 3  # default 3
 router = False  # set role of each node as router (True) or normal client (False)
-numRoutersToInclude = 0 # Randomly select n number of nodes as routers and increase their coverage accordingly
 maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 ### End of Meshtastic specific ###
 
