@@ -310,10 +310,13 @@ delayDropped = sum(n.droppedByDelay for n in nodes)
 print("Number of packets dropped by delay/hop limit:", delayDropped)
 coverageDropped = sum(n.droppedByCoverage for n in nodes)
 print("Number of packets dropped by coverage:", coverageDropped)
-avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(sum(n.rebroadcastPackets for n in nodes))
+bloomRebroadcasts = sum(n.rebroadcastPackets for n in nodes)
+avgCoverageBeforeDrop = 0
+if bloomRebroadcasts > 0:
+	avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(bloomRebroadcasts)
 print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
 estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
-print('Est. Coverage Filter FPR:', round(estimatedCoverageFPR, 2), '%')
+print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
 graph.save()
 
 if conf.PLOT:
