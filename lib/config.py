@@ -108,14 +108,14 @@ RECENCY_THRESHOLD_SECONDS = round(SIMTIME * (1 / HOURS_REPRESENTED), 0)
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
-MODEL_ASYMMETRIC_LINKS = False
+MODEL_ASYMMETRIC_LINKS = True
 MODEL_ASYMMETRIC_LINKS_MEAN = 0
-MODEL_ASYMMETRIC_LINKS_STDDEV = 2
+MODEL_ASYMMETRIC_LINKS_STDDEV = 4
 # Stores the offset for each link
 # Populated when the simulator first starts
 LINK_OFFSET = {}
 
-MOVEMENT_ENABLED = False
+MOVEMENT_ENABLED = True
 WALKING_METERS_PER_MIN = 96
 BIKING_METERS_PER_MIN = 390
 DRIVING_METERS_PER_MIN = 1500
