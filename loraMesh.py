@@ -51,6 +51,8 @@ class MeshNode():
 		self.droppedByCoverage = 0
 		self.coverageBeforeDrop = 0
 		self.rebroadcastPackets = 0
+		self.coverageFalsePositives = 0
+		self.coverageFalseNegatives = 0
 		self.hasReceivedAnyPacket = False
 		self.coverageKnowledge = set()
 		self.lastHeardTime = {}
@@ -290,6 +292,11 @@ class MeshNode():
 						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter, p.totalNodesInCoverageFilter)
 						pNew.hopLimit = p.hopLimit-1
 
+						# Record how far off our coverage knowledge is from actual coverage
+						(fp, fn) = pNew.getPacketCoverageDifference(nodes)
+						self.coverageFalsePositives += fp
+						self.coverageFalseNegatives += fn
+
 						# In the latest firmware, a node without any packets will always rebroadcast
 						if not self.hasReceivedAnyPacket:
 							rebroadcastProbability = 1.0
@@ -424,20 +431,31 @@ else:
 	print('No packets received.')
 delayDropped = sum(n.droppedByDelay for n in nodes)
 print("Number of packets dropped by delay/hop limit:", delayDropped)
-coverageDropped = sum(n.droppedByCoverage for n in nodes)
-print("Number of packets dropped by coverage:", coverageDropped)
-bloomRebroadcasts = sum(n.rebroadcastPackets for n in nodes)
-avgCoverageBeforeDrop = 0
-if bloomRebroadcasts > 0:
-	avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(bloomRebroadcasts)
-print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
-estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
-print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
-print("Asymmetric links:", round(asymmetricLinks / totalPairs * 100, 2), '%')
-print("Symmetric links:", round(symmetricLinks / totalPairs * 100, 2), '%')
-print("No links:", round(noLinks / totalPairs * 100, 2), '%')
-movingNodes = sum([1 for n in nodes if n.isMoving == True])
-print("Number of moving nodes:", movingNodes)
+
+if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
+	coverageDropped = sum(n.droppedByCoverage for n in nodes)
+	print("Number of packets dropped by coverage:", coverageDropped)
+	bloomRebroadcasts = sum(n.rebroadcastPackets for n in nodes)
+	avgCoverageBeforeDrop = 0
+	if bloomRebroadcasts > 0:
+		avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(bloomRebroadcasts)
+	print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
+	estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
+	print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
+	coverageFp = sum([n.coverageFalsePositives for n in nodes])
+	print("Rate of false 'I can cover this node':", round(coverageFp / potentialReceivers * 100, 2), '%')
+	coverageFn = sum([n.coverageFalseNegatives for n in nodes])
+	print("Rate of False 'I don't cover this node':", round(coverageFn / potentialReceivers * 100, 2), '%')
+
+if conf.MODEL_ASYMMETRIC_LINKS == True:
+	print("Asymmetric links:", round(asymmetricLinks / totalPairs * 100, 2), '%')
+	print("Symmetric links:", round(symmetricLinks / totalPairs * 100, 2), '%')
+	print("No links:", round(noLinks / totalPairs * 100, 2), '%')
+
+if conf.MOVEMENT_ENABLED == True:
+	movingNodes = sum([1 for n in nodes if n.isMoving == True])
+	print("Number of moving nodes:", movingNodes)
+
 graph.save()
 
 if conf.PLOT:

@@ -101,6 +101,28 @@ class MeshPacket():
 
 		return rebroadcastProbability
 	
+	def getPacketCoverageDifference(self, nodes):
+		tx_id = self.txNodeId
+		fp = 0  # false positives
+		fn = 0  # false negatives
+
+		for n in nodes:
+			if n.nodeid == tx_id:
+				continue  # skip the transmitter itself
+
+			actuallyInRange = self.sensedByN[n.nodeid]  # True/False
+			knowledgeSaysInRange = (tx_id in n.coverageKnowledge)
+
+			# If physically not in range, but coverage knowledge says "in range"
+			if (not actuallyInRange) and knowledgeSaysInRange:
+				fp += 1
+			# If physically in range, but coverage knowledge says "not in range"
+			elif actuallyInRange and (not knowledgeSaysInRange):
+				fn += 1
+
+		return (fp, fn)
+
+	
 class MeshMessage():
 	def __init__(self, origTxNodeId, destId, genTime, seq):
 		self.origTxNodeId = origTxNodeId
