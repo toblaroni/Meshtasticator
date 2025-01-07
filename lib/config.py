@@ -95,6 +95,9 @@ SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
 MAX_NEIGHBORS_PER_HOP = 20
 
+# Hold onto nodes for a fraction of sim time
+RECENCY_THRESHOLD_SECONDS = SIMTIME * (0.1)
+
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
 MODEL_ASYMMETRIC_LINKS = True
@@ -103,3 +106,8 @@ MODEL_ASYMMETRIC_LINKS_STDDEV = 2
 # Stores the offset for each link
 # Populated when the simulator first starts
 LINK_OFFSET = {}
+
+MOVEMENT_ENABLED = True
+MOVEMENT_STEP_SIZE = 50
+MOVEMENT_DELAY = 10
+APPROX_RATIO_NODES_MOVING = 0.6

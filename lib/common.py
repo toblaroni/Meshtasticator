@@ -1,3 +1,4 @@
+import math
 import os
 import random
 
@@ -198,6 +199,7 @@ def genScenario():
 
 	return nodeDict
 
+import random
 
 def findRandomPosition(nodes):
 	foundMin = True
@@ -356,26 +358,67 @@ class Graph():
 		self.ymax = conf.YSIZE/2 +1
 		self.packets = []
 		self.fig, self.ax = plt.subplots()
-		plt.suptitle('Placement of {} nodes'.format(
-				conf.NR_NODES))
+		plt.suptitle('Placement of {} nodes'.format(conf.NR_NODES))
 		self.ax.set_xlim(-self.xmax+conf.OX, self.xmax+conf.OX)
 		self.ax.set_ylim(-self.ymax+conf.OY, self.ymax+conf.OY)
 		self.ax.set_xlabel('x (m)')
 		self.ax.set_ylabel('y (m)')
 		move_figure(self.fig, 200, 200)
 
+		# --- new: keep track of plot elements ---
+		self.node_circles = {}
+		self.node_markers = {}
+		# If you want labels (text annotations) also updated:
+		self.node_labels = {}
 
+	def updatePositions(self, nodes):
+		for node in nodes:
+			node_id = node.nodeid
+
+			# 1) Update the marker
+			marker = self.node_markers[node_id]
+			marker.set_xdata(node.x)
+			marker.set_ydata(node.y)
+
+			# 2) Update the circle center
+			circle = self.node_circles[node_id]
+			circle.center = (node.x, node.y)
+
+			# 3) (Optional) Update the text label, if you have one
+			if node_id in self.node_labels:
+				self.node_labels[node_id].set_position((node.x - 5, node.y + 5))
+
+		# 4) Redraw the canvas
+		self.fig.canvas.draw_idle()
+		# A short pause to let the UI update
+		plt.pause(0.01)
+    
 	def addNode(self, node):
 		# place the node
 		if not conf.RANDOM:
-			self.ax.annotate(str(node.nodeid), (node.x-5, node.y+5))
-		self.ax.plot(node.x, node.y, marker="o", markersize = 2.5, color = "grey")
-		circle = plt.Circle((node.x, node.y), radius=phy.MAXRANGE, color=plt.cm.Set1(node.nodeid), alpha=0.1)
+			txt = self.ax.annotate(str(node.nodeid), (node.x-5, node.y+5))
+			self.node_labels[node.nodeid] = txt
+
+		# Plot the node marker
+		(marker,) = self.ax.plot(
+			node.x, node.y,
+			marker="o", markersize=2.5, color="grey"
+		)
+		self.node_markers[node.nodeid] = marker
+
+		# Plot the coverage circle
+		circle = plt.Circle(
+			(node.x, node.y),
+			radius=phy.MAXRANGE,
+			color=plt.cm.Set1(node.nodeid),
+			alpha=0.1
+		)
 		self.ax.add_patch(circle)
+		self.node_circles[node.nodeid] = circle
+
 		self.fig.canvas.draw_idle()
 		plt.pause(0.1)
-
-
+    
 	def save(self):
 		if not os.path.isdir(os.path.join("out", "graphics")):
 			if not os.path.isdir("out"):
@@ -383,4 +426,3 @@ class Graph():
 			os.mkdir(os.path.join("out", "graphics"))
 
 		plt.savefig(os.path.join("out", "graphics", "placement_"+str(conf.NR_NODES)))
-

@@ -31,14 +31,14 @@ class MeshPacket():
 		self.cr = conf.CRMODEM[conf.MODEM]
 		self.bw = conf.BWMODEM[conf.MODEM]
 		self.freq = conf.FREQ
-		tx_node = next(n for n in nodes if n.nodeid == self.txNodeId)
+		self.tx_node = next(n for n in nodes if n.nodeid == self.txNodeId)
 		for rx_node in nodes:
 			if rx_node.nodeid == self.txNodeId:
 				continue
-			dist_3d = calcDist(tx_node.x, rx_node.x, tx_node.y, rx_node.y, tx_node.z, rx_node.z) 
+			dist_3d = calcDist(self.tx_node.x, rx_node.x, self.tx_node.y, rx_node.y, self.tx_node.z, rx_node.z) 
 			offset = conf.LINK_OFFSET[(self.txNodeId, rx_node.nodeid)]
-			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, tx_node.z, rx_node.z) + offset
-			self.rssiAtN[rx_node.nodeid] = self.txpow + tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
+			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, self.tx_node.z, rx_node.z) + offset
+			self.rssiAtN[rx_node.nodeid] = self.txpow + self.tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
 			if self.rssiAtN[rx_node.nodeid] >= conf.SENSMODEM[conf.MODEM]:
 				self.sensedByN[rx_node.nodeid] = True
 			if self.rssiAtN[rx_node.nodeid] >= conf.CADMODEM[conf.MODEM]:
@@ -52,7 +52,7 @@ class MeshPacket():
 		# Routing
 		self.retransmissions = conf.maxRetransmission
 		self.ackReceived = False
-		self.hopLimit = tx_node.hopLimit
+		self.hopLimit = self.tx_node.hopLimit
 
 		self.previousCoverageFilter = coverageFilter
 		self.totalNodesInCoverageFilter = prevNodesInCovFilter
@@ -68,17 +68,8 @@ class MeshPacket():
 		if self.previousCoverageFilter is not None:
 			self.coverageFilter.merge(self.previousCoverageFilter)
 
-		# Then add your top neighbors by SNR, but limit to MAX_HOPS_PER_NODE
-		neighbors = []
-		for nodeid, is_sensed in enumerate(self.sensedByN):
-			if is_sensed and nodeid != self.txNodeId:
-				neighbors.append((nodeid, self.rssiAtN[nodeid]))
-
-		# Sort descending by RSSI
-		neighbors.sort(key=lambda x: x[1], reverse=True)
-
-		# Insert only top X
-		for nodeid, rssi in neighbors[:conf.MAX_NEIGHBORS_PER_HOP]:
+		coverageSet = self.tx_node.getCoverageKnowledge()
+		for nodeid in coverageSet:
 			self.coverageFilter.add(nodeid)
 	
 	def refreshAdditionalCoverageRatio(self):
@@ -95,7 +86,10 @@ class MeshPacket():
 					newCoverage += 1
 
 		self.totalNodesInCoverageFilter += newCoverage
-		self.additionalCoverageRatio = float(newCoverage) / float(numNodes)
+		if numNodes > 0:
+			self.additionalCoverageRatio = float(newCoverage) / float(numNodes)
+		else:
+			self.additionalCoverageRatio = 0.0
 	
 	def getRebroadcastProbability(self):
 		self.refreshAdditionalCoverageRatio()

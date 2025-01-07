@@ -52,12 +52,65 @@ class MeshNode():
 		self.coverageBeforeDrop = 0
 		self.rebroadcastPackets = 0
 		self.hasReceivedAnyPacket = False
+		self.coverageKnowledge = set()
+		self.lastHeardTime = {}
+		self.isMoving = False
+		self.distanceMoved = 0
 
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
 		env.process(self.receive(self.bc_pipe.get_output_conn()))
 		self.transmitter = simpy.Resource(env, 1)
 
+		# start mobility if enabled
+		if conf.MOVEMENT_ENABLED and random.random() <= conf.APPROX_RATIO_NODES_MOVING:
+			self.isMoving = True
+			env.process(self.moveNode(env))
+
+	def updateCoverageKnowledge(self, neighbor_id):
+		self.coverageKnowledge.add(neighbor_id)
+		self.lastHeardTime[neighbor_id] = self.env.now
+
+	def removeStaleNodes(self):
+		# remove nodes we haven't been heard from in X seconds
+		for n in list(self.coverageKnowledge):
+			if (self.env.now - self.lastHeardTime[n]) > conf.RECENCY_THRESHOLD_SECONDS:
+				self.coverageKnowledge.remove(n)
+				del self.lastHeardTime[n]
+
+	def getCoverageKnowledge(self):
+		# force a stale cleanup first
+		self.removeStaleNodes()
+		return self.coverageKnowledge
+
+	def moveNode(self, env):
+		while True:
+			# Pick a random direction and distance
+			angle = 2 * math.pi * random.random()
+			distance = conf.MOVEMENT_STEP_SIZE * random.random()
+			
+			# Compute new position
+			dx = distance * math.cos(angle)
+			dy = distance * math.sin(angle)
+			
+			leftBound   = conf.OX - conf.XSIZE/2
+			rightBound  = conf.OX + conf.XSIZE/2
+			bottomBound = conf.OY - conf.YSIZE/2
+			topBound    = conf.OY + conf.YSIZE/2
+
+			# Then in moveNode:
+			new_x = min(max(self.x + dx, leftBound), rightBound)
+			new_y = min(max(self.y + dy, bottomBound), topBound)
+
+			# we could also vary Z if we wanted
+			self.distanceMoved += calcDist(self.x, new_x, self.y, new_y, self.z, self.z) 
+			
+			# Update node’s position
+			self.x = new_x
+			self.y = new_y
+			
+			# Wait until next move
+			yield env.timeout(conf.MOVEMENT_DELAY)
 
 	def generateMessage(self):
 		global messageSeq
@@ -152,6 +205,10 @@ class MeshNode():
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
 				if not self.hasReceivedAnyPacket:
 					self.hasReceivedAnyPacket = True
+
+				# Update knowledge of node based on reception of packet
+				self.updateCoverageKnowledge(p.txNodeId)
+
 				if not self.isTransmitting:
 					verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
 					p.onAirToN[self.nodeid] = False 
@@ -256,6 +313,13 @@ else:
 	def verboseprint(*args, **kwargs): 
 		pass
 
+def runGraphUpdates(env, graph, nodes, interval=500):
+    while True:
+        # Wait 'interval' sim-seconds
+        yield env.timeout(interval)
+        # Now update the positions in the graph
+        graph.updatePositions(nodes)
+
 nodeConfig = getParams(sys.argv)
 env = simpy.Environment()
 bc_pipe = BroadcastPipe(env)
@@ -304,6 +368,9 @@ for a in range(conf.NR_NODES):
 
 			if (canAhearB and not canBhearA) or (not canAhearB and canBhearA):
 				asymmetricPairs += 1
+
+
+env.process(runGraphUpdates(env, graph, nodes))
 
 # start simulation
 print("\n====== START OF SIMULATION ======")
@@ -354,6 +421,10 @@ print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDr
 estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
 print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
 print("Asymmetric links modeled:", asymmetricPairs)
+movingNodes = sum([1 for n in nodes if n.isMoving == True])
+print("Number of moving nodes:", movingNodes)
+totalDistanceMoved = sum([n.distanceMoved for n in nodes])
+print("Total distance moved (km):", round(totalDistanceMoved / 1000, 0))
 graph.save()
 
 if conf.PLOT:
