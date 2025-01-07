@@ -45,6 +45,8 @@ def getParams(args):
 					print(f"Invalid router type: {args[2]}")
 					print(f"Router type must be one of: {', '.join(valid_types)}")
 					exit(1)
+				if conf.NR_NODES == -1:
+					config = genScenario()
 		else: 
 			config = genScenario()
 		if config[0] is not None:
