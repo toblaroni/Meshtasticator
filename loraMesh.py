@@ -210,7 +210,7 @@ class MeshNode():
 		while True:
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
-				if not self.hasReceivedAnyPacket:
+				if not self.hasReceivedAnyPacket and p.origTxNodeId == p.txNodeId:
 					self.hasReceivedAnyPacket = True
 
 				# Update knowledge of node based on reception of packet
