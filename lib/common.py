@@ -39,6 +39,7 @@ def getParams(args):
 					# Attempt to convert the string args[2] into a valid enum member
 					routerType = conf.ROUTER_TYPE(args[2])
 					conf.SELECTED_ROUTER_TYPE = routerType
+					conf.updateRouterDependencies()
 				except ValueError:
 					# If it fails, print possible values
 					valid_types = [member.name for member in conf.ROUTER_TYPE]

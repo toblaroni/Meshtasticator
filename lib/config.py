@@ -75,16 +75,19 @@ class ROUTER_TYPE(Enum):
 ####### SET ROUTER TYPE BELOW ########
 ######################################
 
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
 
 ######################################
 ####### SET ROUTER TYPE ABOVE ########
 ######################################
 
-# Overwrite hop limit in the case of Bloom routing
-if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
-    hopLimit = 15
-    HEADERLENGTH = 32
+def updateRouterDependencies():
+    # Overwrite hop limit in the case of Bloom routing
+    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
+        hopLimit = 15
+        HEADERLENGTH = 32
+
+updateRouterDependencies()
 
 BLOOM_FILTER_SIZE_BITS = 128
 BLOOM_FILTER_SIZE_BYTES = BLOOM_FILTER_SIZE_BITS // 8
