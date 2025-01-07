@@ -114,8 +114,6 @@ MOVEMENT_ENABLED = True
 WALKING_METERS_PER_MIN = 96
 BIKING_METERS_PER_MIN = 390
 DRIVING_METERS_PER_MIN = 1500
-# In theory, this is meters
-MOVEMENT_STEP_SIZE = BIKING_METERS_PER_MIN
 # If SIMTIME is an X hour period (simulated), 
 # this is movement every 1 minutes of that X hour period
 SCALED_MOVEMENT_DELAY_1MIN = round(SIMTIME * ((1 / 60) / HOURS_REPRESENTED), 0)
