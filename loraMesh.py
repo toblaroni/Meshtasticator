@@ -55,7 +55,6 @@ class MeshNode():
 		self.coverageKnowledge = set()
 		self.lastHeardTime = {}
 		self.isMoving = False
-		self.distanceMoved = 0
 
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
@@ -101,9 +100,6 @@ class MeshNode():
 			# Then in moveNode:
 			new_x = min(max(self.x + dx, leftBound), rightBound)
 			new_y = min(max(self.y + dy, bottomBound), topBound)
-
-			# we could also vary Z if we wanted
-			self.distanceMoved += calcDist(self.x, new_x, self.y, new_y, self.z, self.z) 
 			
 			# Update node’s position
 			self.x = new_x
@@ -331,7 +327,10 @@ packets = []
 delays = []
 packetsAtN = [[] for _ in range(conf.NR_NODES)]
 messageSeq = 0
-asymmetricPairs = 0
+totalPairs = 0
+symmetricLinks = 0
+asymmetricLinks = 0
+noLinks = 0
 
 if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.SHOW_PROBABILITY_FUNCTION_COMPARISON == True:
 	plotRebroadcastProbabilityModels()
@@ -366,8 +365,13 @@ for a in range(conf.NR_NODES):
 			canAhearB = (rssiAB >= conf.SENSMODEM[conf.MODEM])
 			canBhearA = (rssiBA >= conf.SENSMODEM[conf.MODEM])
 
-			if (canAhearB and not canBhearA) or (not canAhearB and canBhearA):
-				asymmetricPairs += 1
+			totalPairs += 1
+			if canAhearB and canBhearA:
+				symmetricLinks += 1
+			elif canAhearB or canBhearA:
+				asymmetricLinks += 1
+			else:
+				noLinks += 1
 
 
 env.process(runGraphUpdates(env, graph, nodes))
@@ -420,11 +424,11 @@ if bloomRebroadcasts > 0:
 print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
 estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
 print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
-print("Asymmetric links modeled:", asymmetricPairs)
+print("Asymmetric links:", round(asymmetricLinks / totalPairs * 100, 2), '%')
+print("Symmetric links:", round(symmetricLinks / totalPairs * 100, 2), '%')
+print("No links:", round(noLinks / totalPairs * 100, 2), '%')
 movingNodes = sum([1 for n in nodes if n.isMoving == True])
 print("Number of moving nodes:", movingNodes)
-totalDistanceMoved = sum([n.distanceMoved for n in nodes])
-print("Total distance moved (km):", round(totalDistanceMoved / 1000, 0))
 graph.save()
 
 if conf.PLOT:
