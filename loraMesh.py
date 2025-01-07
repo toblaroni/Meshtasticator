@@ -398,7 +398,7 @@ env.run(until=conf.SIMTIME)
 
 # compute statistics
 print("\n====== END OF SIMULATION ======")
-print("\n*******************************")
+print("*******************************")
 print(f"\nRouter Type: {conf.SELECTED_ROUTER_TYPE}")
 print('Number of messages created:', messageSeq)
 sent = len(packets)
