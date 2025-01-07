@@ -64,6 +64,15 @@ class MeshNode():
 		# start mobility if enabled
 		if conf.MOVEMENT_ENABLED and random.random() <= conf.APPROX_RATIO_NODES_MOVING:
 			self.isMoving = True
+
+			# Randomly assign a movement speed
+			possibleSpeeds = [
+				conf.WALKING_METERS_PER_MIN,  # e.g.,  96 m/min
+				conf.BIKING_METERS_PER_MIN,   # e.g., 390 m/min
+				conf.DRIVING_METERS_PER_MIN   # e.g., 1500 m/min
+			]
+			self.movementStepSize = random.choice(possibleSpeeds)
+
 			env.process(self.moveNode(env))
 
 	def updateCoverageKnowledge(self, neighbor_id):
@@ -86,7 +95,7 @@ class MeshNode():
 		while True:
 			# Pick a random direction and distance
 			angle = 2 * math.pi * random.random()
-			distance = conf.MOVEMENT_STEP_SIZE * random.random()
+			distance = self.movementStepSize * random.random()
 			
 			# Compute new position
 			dx = distance * math.cos(angle)
@@ -106,7 +115,7 @@ class MeshNode():
 			self.y = new_y
 			
 			# Wait until next move
-			yield env.timeout(conf.MOVEMENT_DELAY)
+			yield env.timeout(conf.SCALED_MOVEMENT_DELAY_1MIN)
 
 	def generateMessage(self):
 		global messageSeq
