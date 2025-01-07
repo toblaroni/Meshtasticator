@@ -99,6 +99,7 @@ COVERAGE_RATIO_SCALE_FACTOR = 3.0
 # Set this to non-zero value to make it possible that a 
 # node without any additional coverage may still rebroadcast
 BASELINE_REBROADCAST_PROBABILITY = 0.0
+UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 0.7
 
 SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 

@@ -298,9 +298,10 @@ class MeshNode():
 						self.coverageFalsePositives += fp
 						self.coverageFalseNegatives += fn
 
-						# In the latest firmware, a node without any direct neighbor knowledge will always rebroadcast
+						# In the latest firmware, a node without any direct neighbor knowledge will
+						# rebroadcast with UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
 						if not self.hasReceivedDirectNeighborPacket:
-							rebroadcastProbability = 1.0
+							rebroadcastProbability = conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
 						else:
 							rebroadcastProbability = pNew.getRebroadcastProbability()
 
