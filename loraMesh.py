@@ -53,7 +53,7 @@ class MeshNode():
 		self.rebroadcastPackets = 0
 		self.coverageFalsePositives = 0
 		self.coverageFalseNegatives = 0
-		self.hasReceivedAnyPacket = False
+		self.hasReceivedDirectNeighborPacket = False
 		self.coverageKnowledge = set()
 		self.lastHeardTime = {}
 		self.isMoving = False
@@ -210,11 +210,12 @@ class MeshNode():
 		while True:
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
-				if not self.hasReceivedAnyPacket and p.origTxNodeId == p.txNodeId:
-					self.hasReceivedAnyPacket = True
-
-				# Update knowledge of node based on reception of packet
-				self.updateCoverageKnowledge(p.txNodeId)
+				if not self.hasReceivedDirectNeighborPacket and p.origTxNodeId == p.txNodeId:
+					self.hasReceivedDirectNeighborPacket = True
+					# Update knowledge of node based on reception of packet
+					# We only want this to be our direct neighbors because there is no other mechanism
+					# in the simulator to test that
+					self.updateCoverageKnowledge(p.txNodeId)
 
 				if not self.isTransmitting:
 					verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
@@ -297,8 +298,8 @@ class MeshNode():
 						self.coverageFalsePositives += fp
 						self.coverageFalseNegatives += fn
 
-						# In the latest firmware, a node without any packets will always rebroadcast
-						if not self.hasReceivedAnyPacket:
+						# In the latest firmware, a node without any direct neighbor knowledge will always rebroadcast
+						if not self.hasReceivedDirectNeighborPacket:
 							rebroadcastProbability = 1.0
 						else:
 							rebroadcastProbability = pNew.getRebroadcastProbability()
