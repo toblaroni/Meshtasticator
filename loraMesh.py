@@ -268,6 +268,10 @@ for i in range(conf.NR_NODES):
 	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i])
 	nodes.append(node)
 	graph.addNode(node)
+	if conf.MODEL_ASYMMETRIC_LINKS = True:
+		for j in range(conf.NR_NODES):
+			if i != j:
+				conf.LINK_OFFSET[(i,j)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
 
 # start simulation
 print("\n====== START OF SIMULATION ======")
