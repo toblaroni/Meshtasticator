@@ -23,7 +23,8 @@ maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 MODEM = 4  # LoRa modem to use: 0 = ShortFast, 1 = Short Slow, ... 7 = Very Long Slow (default 4 is LongFast)
 PERIOD = 100000  # mean period of generating a new message with exponential distribution in ms
 PACKETLENGTH = 40  # payload in bytes  
-SIMTIME = 1200000  # duration of one simulation in ms 
+SIMTIME = 1200000  # duration of one simulation in ms
+HOURS_REPRESENTED = 4
 INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                            # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
 COLLISION_DUE_TO_INTERFERENCE = False
@@ -96,7 +97,9 @@ SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 MAX_NEIGHBORS_PER_HOP = 20
 
 # Hold onto nodes for a fraction of sim time
-RECENCY_THRESHOLD_SECONDS = SIMTIME * (0.1)
+# If SIMTIME is an X hour period (simulated),
+# we want this to be 1 of those X hours
+RECENCY_THRESHOLD_SECONDS = round(SIMTIME * (1 / HOURS_REPRESENTED), 0)
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
@@ -108,6 +111,10 @@ MODEL_ASYMMETRIC_LINKS_STDDEV = 2
 LINK_OFFSET = {}
 
 MOVEMENT_ENABLED = True
-MOVEMENT_STEP_SIZE = 50
-MOVEMENT_DELAY = 10
+# In theory, this is meters
+MOVEMENT_STEP_SIZE = 500
+# If SIMTIME is an X hour period (simulated), 
+# this is movement every N minutes of that X hour period
+MOVEMENT_DELAY = round(SIMTIME * ((5 / 60) / HOURS_REPRESENTED), 0)
+
 APPROX_RATIO_NODES_MOVING = 0.6
