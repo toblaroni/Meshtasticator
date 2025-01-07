@@ -107,6 +107,10 @@ def airtime(sf, cr, pl, bw):
 
 
 def estimatePathLoss(dist, freq, txZ=conf.HM, rxZ=conf.HM):
+	# With randomized movements we may end up on top of another node
+	# which is problematic for log(dist)
+    dist = max(dist, .001)
+	
     # Log-Distance model
     if conf.MODEL == 0: 
         Lpl = conf.LPLD0 + 10*conf.GAMMA*math.log10(dist/conf.D0)
