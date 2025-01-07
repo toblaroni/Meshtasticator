@@ -74,7 +74,12 @@ class ROUTER_TYPE(Enum):
 ######################################
 ####### SET ROUTER TYPE BELOW ########
 ######################################
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
+
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
+
+######################################
+####### SET ROUTER TYPE ABOVE ########
+######################################
 
 # Overwrite hop limit in the case of Bloom routing
 if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
