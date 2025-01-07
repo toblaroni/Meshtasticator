@@ -25,7 +25,6 @@ class MeshPacket():
 		self.collidedAtN = [False for _ in range(conf.NR_NODES)]
 		self.receivedAtN = [False for _ in range(conf.NR_NODES)]
 		self.onAirToN = [True for _ in range(conf.NR_NODES)]
-		self.offset = conf.LINK_OFFSET[(self.txNodeId, rx_node.nodeid)]
 
 		# configuration values
 		self.sf = conf.SFMODEM[conf.MODEM]
@@ -37,7 +36,8 @@ class MeshPacket():
 			if rx_node.nodeid == self.txNodeId:
 				continue
 			dist_3d = calcDist(tx_node.x, rx_node.x, tx_node.y, rx_node.y, tx_node.z, rx_node.z) 
-			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, tx_node.z, rx_node.z) + self.offset
+			offset = conf.LINK_OFFSET[(self.txNodeId, rx_node.nodeid)]
+			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, tx_node.z, rx_node.z) + offset
 			self.rssiAtN[rx_node.nodeid] = self.txpow + tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
 			if self.rssiAtN[rx_node.nodeid] >= conf.SENSMODEM[conf.MODEM]:
 				self.sensedByN[rx_node.nodeid] = True

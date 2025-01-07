@@ -267,6 +267,7 @@ packets = []
 delays = []
 packetsAtN = [[] for _ in range(conf.NR_NODES)]
 messageSeq = 0
+asymmetricPairs = 0
 
 if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.SHOW_PROBABILITY_FUNCTION_COMPARISON == True:
 	plotRebroadcastProbabilityModels()
@@ -276,12 +277,33 @@ for i in range(conf.NR_NODES):
 	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i])
 	nodes.append(node)
 	graph.addNode(node)
-	for j in range(conf.NR_NODES):
-		if i != j:
+	for b in range(conf.NR_NODES):
+		if i != b:
 			if conf.MODEL_ASYMMETRIC_LINKS:
-				conf.LINK_OFFSET[(i,j)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
+				conf.LINK_OFFSET[(i,b)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
 			else:
-				conf.LINK_OFFSET[(i,j)] = 0
+				conf.LINK_OFFSET[(i,b)] = 0
+
+for a in range(conf.NR_NODES):
+	for b in range(conf.NR_NODES):
+		if a != b:
+			# Calculate constant RSSI in both directions
+			nodeA = nodes[a]
+			nodeB = nodes[b]
+			distAB = calcDist(nodeA.x, nodeB.x, nodeA.y, nodeB.y, nodeA.z, nodeB.z)
+			pathLossAB = estimatePathLoss(distAB, conf.FREQ, nodeA.z, nodeB.z)
+			
+			offsetAB = conf.LINK_OFFSET[(a, b)]
+			offsetBA = conf.LINK_OFFSET[(b, a)]
+			
+			rssiAB = conf.PTX + nodeA.antennaGain + nodeB.antennaGain - pathLossAB - offsetAB
+			rssiBA = conf.PTX + nodeB.antennaGain + nodeA.antennaGain - pathLossAB - offsetBA
+
+			canAhearB = (rssiAB >= conf.SENSMODEM[conf.MODEM])
+			canBhearA = (rssiBA >= conf.SENSMODEM[conf.MODEM])
+
+			if (canAhearB and not canBhearA) or (not canAhearB and canBhearA):
+				asymmetricPairs += 1
 
 # start simulation
 print("\n====== START OF SIMULATION ======")
@@ -331,6 +353,7 @@ if bloomRebroadcasts > 0:
 print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
 estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
 print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
+print("Asymmetric links modeled:", asymmetricPairs)
 graph.save()
 
 if conf.PLOT:
