@@ -25,6 +25,7 @@ class MeshPacket():
 		self.collidedAtN = [False for _ in range(conf.NR_NODES)]
 		self.receivedAtN = [False for _ in range(conf.NR_NODES)]
 		self.onAirToN = [True for _ in range(conf.NR_NODES)]
+		self.offset = conf.LINK_OFFSET[(self.txNodeId, rx_node.nodeid)]
 
 		# configuration values
 		self.sf = conf.SFMODEM[conf.MODEM]
@@ -36,7 +37,7 @@ class MeshPacket():
 			if rx_node.nodeid == self.txNodeId:
 				continue
 			dist_3d = calcDist(tx_node.x, rx_node.x, tx_node.y, rx_node.y, tx_node.z, rx_node.z) 
-			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, tx_node.z, rx_node.z)
+			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, tx_node.z, rx_node.z) + self.offset
 			self.rssiAtN[rx_node.nodeid] = self.txpow + tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
 			if self.rssiAtN[rx_node.nodeid] >= conf.SENSMODEM[conf.MODEM]:
 				self.sensedByN[rx_node.nodeid] = True
@@ -59,20 +60,26 @@ class MeshPacket():
 		self.setCoverageFilter()
 
 	def setCoverageFilter(self):
-		# Always create a new, empty CoverageFilter
 		self.coverageFilter = CoverageFilter()
-		
-		# Always add the transmitting node to the coverage filter
+		# Always add the transmitting node
 		self.coverageFilter.add(self.txNodeId)
 
-		# If there was a previous coverage filter, merge its bits into the new one
+		# Merge prior coverage bits
 		if self.previousCoverageFilter is not None:
 			self.coverageFilter.merge(self.previousCoverageFilter)
 
-		# Then add our own newly sensed coverage
+		# Then add your top neighbors by SNR, but limit to MAX_HOPS_PER_NODE
+		neighbors = []
 		for nodeid, is_sensed in enumerate(self.sensedByN):
-			if is_sensed:
-				self.coverageFilter.add(nodeid)
+			if is_sensed and nodeid != self.txNodeId:
+				neighbors.append((nodeid, self.rssiAtN[nodeid]))
+
+		# Sort descending by RSSI
+		neighbors.sort(key=lambda x: x[1], reverse=True)
+
+		# Insert only top X
+		for nodeid, rssi in neighbors[:conf.MAX_NEIGHBORS_PER_HOP]:
+			self.coverageFilter.add(nodeid)
 	
 	def refreshAdditionalCoverageRatio(self):
 		# If we don't have previous coverage, all coverage is new!

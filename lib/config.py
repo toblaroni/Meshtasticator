@@ -93,6 +93,8 @@ BASELINE_REBROADCAST_PROBABILITY = 0.0
 
 SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
+MAX_NEIGHBORS_PER_HOP = 20
+
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
 MODEL_ASYMMETRIC_LINKS = True

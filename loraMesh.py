@@ -51,6 +51,7 @@ class MeshNode():
 		self.droppedByCoverage = 0
 		self.coverageBeforeDrop = 0
 		self.rebroadcastPackets = 0
+		self.hasReceivedAnyPacket = False
 
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
@@ -149,6 +150,8 @@ class MeshNode():
 		while True:
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
+				if not self.hasReceivedAnyPacket:
+					self.hasReceivedAnyPacket = True
 				if not self.isTransmitting:
 					verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
 					p.onAirToN[self.nodeid] = False 
@@ -225,8 +228,13 @@ class MeshNode():
 						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter, p.totalNodesInCoverageFilter)
 						pNew.hopLimit = p.hopLimit-1
 
+						# In the latest firmware, a node without any packets will always rebroadcast
+						if not self.hasReceivedAnyPacket:
+							rebroadcastProbability = 1.0
+						else:
+							rebroadcastProbability = pNew.getRebroadcastProbability()
+
 						rebroadcastProbabilityTest = random.random()
-						rebroadcastProbability = pNew.getRebroadcastProbability()
 
 						# Check the random against the probability
 						if rebroadcastProbabilityTest <= rebroadcastProbability:
@@ -268,10 +276,12 @@ for i in range(conf.NR_NODES):
 	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i])
 	nodes.append(node)
 	graph.addNode(node)
-	if conf.MODEL_ASYMMETRIC_LINKS = True:
-		for j in range(conf.NR_NODES):
-			if i != j:
+	for j in range(conf.NR_NODES):
+		if i != j:
+			if conf.MODEL_ASYMMETRIC_LINKS:
 				conf.LINK_OFFSET[(i,j)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
+			else:
+				conf.LINK_OFFSET[(i,j)] = 0
 
 # start simulation
 print("\n====== START OF SIMULATION ======")
