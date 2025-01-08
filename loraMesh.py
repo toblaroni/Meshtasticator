@@ -57,6 +57,10 @@ class MeshNode():
 		self.coverageKnowledge = set()
 		self.lastHeardTime = {}
 		self.isMoving = False
+		# Track last broadcast position/time
+		self.lastBroadcastX = self.x
+		self.lastBroadcastY = self.y
+		self.lastBroadcastTime = 0
 
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
@@ -95,6 +99,8 @@ class MeshNode():
 
 	def moveNode(self, env):
 		while True:
+			old_x, old_y = self.x, self.y
+
 			# Pick a random direction and distance
 			angle = 2 * math.pi * random.random()
 			distance = self.movementStepSize * random.random()
@@ -115,9 +121,33 @@ class MeshNode():
 			# Update node’s position
 			self.x = new_x
 			self.y = new_y
+
+			distanceTraveled = calcDist(self.last_broadcast_x, self.x, self.last_broadcast_y, self.y)
+			timeElapsed = env.now - self.lastBroadcastTime
+			if (distanceTraveled >= conf.SMART_POSITION_DISTANCE_THRESHOLD and
+				timeElapsed >= conf.SMART_POSITION_DISTANCE_MIN_TIME):
+
+				# “Smart broadcast” triggered
+				self.sendPacket(NODENUM_BROADCAST)
+
+				# Update reference points
+				self.lastBroadcastX = self.x
+				self.lastBroadcastY = self.y
+				self.lastBroadcastTime = env.now
+
 			
 			# Wait until next move
 			yield env.timeout(conf.SCALED_MOVEMENT_DELAY_1MIN)
+
+	def sendPacket(self, destId):
+		global messageSeq
+		messageSeq += 1
+		self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
+		p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None)
+		verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated message', p.seq, 'to', destId)
+		self.packets.append(p)
+		self.env.process(self.transmit(p))
+		return p
 
 	def generateMessage(self):
 		global messageSeq
@@ -131,12 +161,9 @@ class MeshNode():
 					destId = random.choice([i for i in range(0, len(nodes)) if i is not self.nodeid])
 				else:
 					destId = NODENUM_BROADCAST
-				messageSeq += 1
-				self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
-				p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None)  
-				verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated message', p.seq, 'to', destId)
-				self.packets.append(p)
-				self.env.process(self.transmit(p))
+
+				p = self.sendPacket(destId)
+
 				while p.wantAck: # ReliableRouter: retransmit message if no ACK received after timeout 
 					retransmissionMsec = getRetransmissionMsec(self, p) 
 					yield self.env.timeout(retransmissionMsec)
@@ -154,7 +181,7 @@ class MeshNode():
 						break
 					else: 
 						if minRetransmissions > 0:  # generate new packet with same sequence number
-							pNew = MeshPacket(self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None)  
+							pNew = MeshPacket(self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None)
 							pNew.retransmissions = minRetransmissions-1
 							verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
 							self.packets.append(pNew)
