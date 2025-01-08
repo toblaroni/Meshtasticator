@@ -99,7 +99,6 @@ class MeshNode():
 
 	def moveNode(self, env):
 		while True:
-			old_x, old_y = self.x, self.y
 
 			# Pick a random direction and distance
 			angle = 2 * math.pi * random.random()
@@ -150,7 +149,6 @@ class MeshNode():
 		return p
 
 	def generateMessage(self):
-		global messageSeq
 		while True:
 			nextGen = random.expovariate(1.0/float(self.period))
 			# do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
