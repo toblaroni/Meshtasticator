@@ -268,6 +268,7 @@ class MeshNode():
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
 				if p.origTxNodeId == p.txNodeId:
+					# No harm in setting this to true even if its already true
 					self.hasReceivedDirectNeighborPacket = True
 					# Update knowledge of node based on reception of packet
 					# We only want this to be our direct neighbors because there is no other mechanism
