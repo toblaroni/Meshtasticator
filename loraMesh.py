@@ -121,13 +121,13 @@ class MeshNode():
 			self.x = new_x
 			self.y = new_y
 
-			distanceTraveled = calcDist(self.last_broadcast_x, self.x, self.last_broadcast_y, self.y)
+			distanceTraveled = calcDist(self.lastBroadcastX, self.x, self.lastBroadcastY, self.y)
 			timeElapsed = env.now - self.lastBroadcastTime
 			if (distanceTraveled >= conf.SMART_POSITION_DISTANCE_THRESHOLD and
 				timeElapsed >= conf.SMART_POSITION_DISTANCE_MIN_TIME):
 
 				# “Smart broadcast” triggered
-				self.sendPacket(NODENUM_BROADCAST)
+				self.sendPacket(NODENUM_BROADCAST, "POSITION")
 
 				# Update reference points
 				self.lastBroadcastX = self.x
@@ -138,12 +138,12 @@ class MeshNode():
 			# Wait until next move
 			yield env.timeout(conf.SCALED_MOVEMENT_DELAY_1MIN)
 
-	def sendPacket(self, destId):
+	def sendPacket(self, destId, type=""):
 		global messageSeq
 		messageSeq += 1
 		self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
 		p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None)
-		verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated message', p.seq, 'to', destId)
+		verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
 		self.packets.append(p)
 		self.env.process(self.transmit(p))
 		return p
