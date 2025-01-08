@@ -164,7 +164,7 @@ class MeshNode():
 					self.lastBroadcastY = self.y
 					self.lastBroadcastTime = env.now
 				else:
-					verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25)")
+					verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25%)")
 
 			
 			# Wait until next move
