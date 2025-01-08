@@ -384,9 +384,9 @@ else:
 	def verboseprint(*args, **kwargs): 
 		pass
 
-def runGraphUpdates(env, graph, nodes, interval=500):
+def runGraphUpdates(env, graph, nodes, interval=conf.ONE_MIN_INTERVAL/2):
     while True:
-        # Wait 'interval' sim-seconds
+        # Wait 'interval' sim-mseconds
         yield env.timeout(interval)
         # Now update the positions in the graph
         graph.updatePositions(nodes)
