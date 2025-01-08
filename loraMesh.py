@@ -168,7 +168,11 @@ class MeshNode():
 
 			
 			# Wait until next move
-			yield env.timeout(conf.ONE_MIN_INTERVAL)
+			nextMove = self.getNextTime(conf.ONE_MIN_INTERVAL)
+			if nextMove >= 0:
+				yield env.timeout(nextMove)
+			else:
+				break
 
 	def sendPacket(self, destId, type=""):
 		global messageSeq
@@ -179,12 +183,20 @@ class MeshNode():
 		self.packets.append(p)
 		self.env.process(self.transmit(p))
 		return p
+	
+	def getNextTime(self, period):
+		nextGen = random.expovariate(1.0/float(period))
+		# do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
+		if self.env.now+nextGen+self.hopLimit*airtime(conf.SFMODEM[conf.MODEM], conf.CRMODEM[conf.MODEM], conf.PACKETLENGTH, conf.BWMODEM[conf.MODEM]) < conf.SIMTIME:
+			return nextGen
+		return -1
 
 	def generateMessage(self):
 		while True:
-			nextGen = random.expovariate(1.0/float(self.period))
+			# Returns -1 if we won't make it before the sim ends
+			nextGen = self.getNextTime(self.period)
 			# do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
-			if self.env.now+nextGen+self.hopLimit*airtime(conf.SFMODEM[conf.MODEM], conf.CRMODEM[conf.MODEM], conf.PACKETLENGTH, conf.BWMODEM[conf.MODEM]) < conf.SIMTIME:
+			if nextGen >= 0:
 				yield self.env.timeout(nextGen) 
 
 				if conf.DMs:
