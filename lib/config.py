@@ -127,7 +127,10 @@ DRIVING_METERS_PER_MIN = 1500
 # this is movement every 1 minutes of that X hour period
 SCALED_MOVEMENT_DELAY_1MIN = round(SIMTIME * ((1 / 60) / HOURS_REPRESENTED), 0)
 SMART_POSITION_DISTANCE_THRESHOLD = 100
-# 30s minimum time in firmware, setting to 5 simulated minutes because chl utilization clamps this usually
-SMART_POSITION_DISTANCE_MIN_TIME = round(SIMTIME * ((5 / 60) / HOURS_REPRESENTED), 0)
+# 30s minimum time in firmware
+SMART_POSITION_DISTANCE_MIN_TIME = round(SIMTIME * ((30 / (60 * 60)) / HOURS_REPRESENTED), 0)
 
 APPROX_RATIO_NODES_MOVING = 0.6
+
+CHANNEL_UTILIZATION_PERIODS = 6
+TEN_SECONDS_INTERVAL = round(SIMTIME * ((10 / (60 * 60)) / HOURS_REPRESENTED), 0)

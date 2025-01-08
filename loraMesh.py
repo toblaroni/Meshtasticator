@@ -61,7 +61,12 @@ class MeshNode():
 		self.lastBroadcastX = self.x
 		self.lastBroadcastY = self.y
 		self.lastBroadcastTime = 0
+		# track total transmit time for the last 6 buckets (each is 10s in firmware logic)
+		self.channelUtilization = [0]*conf.CHANNEL_UTILIZATION_PERIODS  # each entry is ms spent on air in that interval
+		self.channelUtilizationIndex = 0  # which "bucket" is current
+		self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
 
+		env.process(self.trackChannelUtilization(env))
 		if not self.isRepeater:  # repeaters don't generate messages themselves
 			env.process(self.generateMessage())
 		env.process(self.receive(self.bc_pipe.get_output_conn()))
@@ -80,6 +85,38 @@ class MeshNode():
 			self.movementStepSize = random.choice(possibleSpeeds)
 
 			env.process(self.moveNode(env))
+
+	def trackChannelUtilization(self, env):
+		"""
+		Periodically compute how many seconds of airtime this node consumed
+		over the last 10-second block and store it in the ring buffer.
+		"""
+		while True:
+			# Wait 10 seconds of simulated time
+			yield env.timeout(conf.TEN_SECONDS_INTERVAL)
+
+			# 1) Find out how much new air-time has accumulated
+			curTotalAirtime = self.txAirUtilization  # total so far, in *seconds*
+			blockAirtimeSec = curTotalAirtime - self.prevTxAirUtilization
+
+			# 2) Convert to milliseconds
+			blockAirtimeMs = blockAirtimeSec * 1000.0
+
+			# 3) Store in ring buffer
+			self.channelUtilization[self.channelUtilizationIndex] = blockAirtimeMs
+
+			# 4) Update for next cycle
+			self.prevTxAirUtilization = curTotalAirtime
+			self.channelUtilizationIndex = (self.channelUtilizationIndex + 1) % conf.CHANNEL_UTILIZATION_PERIODS
+
+	def channelUtilizationPercent(self) -> float:
+		"""
+		Returns how much of the last 60 seconds (6 x 10s) this node spent transmitting, as a percent.
+		"""
+		sumMs = sum(self.channelUtilization)
+		# 6 intervals, each 10 seconds = 60,000 ms total
+		# fraction = sum_ms / 60000, then multiply by 100 for percent
+		return (sumMs / (conf.CHANNEL_UTILIZATION_PERIODS * conf.TEN_SECONDS_INTERVAL * 1000)) * 100.0
 
 	def updateCoverageKnowledge(self, neighbor_id):
 		self.coverageKnowledge.add(neighbor_id)
@@ -126,13 +163,14 @@ class MeshNode():
 			if (distanceTraveled >= conf.SMART_POSITION_DISTANCE_THRESHOLD and
 				timeElapsed >= conf.SMART_POSITION_DISTANCE_MIN_TIME):
 
-				# “Smart broadcast” triggered
-				self.sendPacket(NODENUM_BROADCAST, "POSITION")
-
-				# Update reference points
-				self.lastBroadcastX = self.x
-				self.lastBroadcastY = self.y
-				self.lastBroadcastTime = env.now
+				currentUtil = self.channelUtilizationPercent()
+				if currentUtil < 25.0:
+					self.sendPacket(NODENUM_BROADCAST, "POSITION")
+					self.lastBroadcastX = self.x
+					self.lastBroadcastY = self.y
+					self.lastBroadcastTime = env.now
+				else:
+					verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25)")
 
 			
 			# Wait until next move
