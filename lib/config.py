@@ -28,7 +28,7 @@ ONE_HR_INTERVAL = ONE_MIN_INTERVAL * 60
 MODEM = 4  # LoRa modem to use: 0 = ShortFast, 1 = Short Slow, ... 7 = Very Long Slow (default 4 is LongFast)
 PERIOD = 100 * ONE_SECOND_INTERVAL  # mean period of generating a new message with exponential distribution in ms
 PACKETLENGTH = 40  # payload in bytes  
-SIMTIME = 90 * ONE_MIN_INTERVAL  # duration of one simulation in ms
+SIMTIME = 120 * ONE_MIN_INTERVAL  # duration of one simulation in ms
 HOURS_REPRESENTED = 4
 INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                            # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
@@ -110,8 +110,8 @@ SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
 MAX_NEIGHBORS_PER_HOP = 20
 
-# Currently simtime is too low for this to do anything
-RECENCY_THRESHOLD = ONE_HR_INTERVAL
+# If SIMTIME is less than this, nodes will not age out of coverage
+RECENCY_THRESHOLD = 30 * ONE_MIN_INTERVAL
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
