@@ -95,17 +95,11 @@ class MeshNode():
 			# Wait 10 seconds of simulated time
 			yield env.timeout(conf.TEN_SECONDS_INTERVAL)
 
-			# 1) Find out how much new air-time has accumulated
-			curTotalAirtime = self.txAirUtilization  # total so far, in *seconds*
-			blockAirtimeSec = curTotalAirtime - self.prevTxAirUtilization
+			curTotalAirtime = self.txAirUtilization  # total so far, in *milliseconds*
+			blockAirtimeMs = curTotalAirtime - self.prevTxAirUtilization
 
-			# 2) Convert to milliseconds
-			blockAirtimeMs = blockAirtimeSec * 1000.0
-
-			# 3) Store in ring buffer
 			self.channelUtilization[self.channelUtilizationIndex] = blockAirtimeMs
 
-			# 4) Update for next cycle
 			self.prevTxAirUtilization = curTotalAirtime
 			self.channelUtilizationIndex = (self.channelUtilizationIndex + 1) % conf.CHANNEL_UTILIZATION_PERIODS
 
@@ -116,7 +110,7 @@ class MeshNode():
 		sumMs = sum(self.channelUtilization)
 		# 6 intervals, each 10 seconds = 60,000 ms total
 		# fraction = sum_ms / 60000, then multiply by 100 for percent
-		return (sumMs / (conf.CHANNEL_UTILIZATION_PERIODS * conf.TEN_SECONDS_INTERVAL * 1000)) * 100.0
+		return (sumMs / (conf.CHANNEL_UTILIZATION_PERIODS * conf.TEN_SECONDS_INTERVAL)) * 100.0
 
 	def updateCoverageKnowledge(self, neighbor_id):
 		self.coverageKnowledge.add(neighbor_id)
@@ -125,7 +119,7 @@ class MeshNode():
 	def removeStaleNodes(self):
 		# remove nodes we haven't been heard from in X seconds
 		for n in list(self.coverageKnowledge):
-			if (self.env.now - self.lastHeardTime[n]) > conf.RECENCY_THRESHOLD_SECONDS:
+			if (self.env.now - self.lastHeardTime[n]) > conf.RECENCY_THRESHOLD:
 				self.coverageKnowledge.remove(n)
 				del self.lastHeardTime[n]
 
@@ -174,7 +168,7 @@ class MeshNode():
 
 			
 			# Wait until next move
-			yield env.timeout(conf.SCALED_MOVEMENT_DELAY_1MIN)
+			yield env.timeout(conf.ONE_MIN_INTERVAL)
 
 	def sendPacket(self, destId, type=""):
 		global messageSeq

@@ -19,11 +19,16 @@ router = False  # set role of each node as router (True) or normal client (False
 maxRetransmission = 3  # default 3 -- not configurable by Meshtastic
 ### End of Meshtastic specific ###
 
+ONE_SECOND_INTERVAL = 1000
+TEN_SECONDS_INTERVAL = ONE_SECOND_INTERVAL * 10
+ONE_MIN_INTERVAL = TEN_SECONDS_INTERVAL * 6
+ONE_HR_INTERVAL = ONE_MIN_INTERVAL * 60
+
 ### Discrete-event specific ###
 MODEM = 4  # LoRa modem to use: 0 = ShortFast, 1 = Short Slow, ... 7 = Very Long Slow (default 4 is LongFast)
-PERIOD = 100000  # mean period of generating a new message with exponential distribution in ms
+PERIOD = 100 * ONE_SECOND_INTERVAL  # mean period of generating a new message with exponential distribution in ms
 PACKETLENGTH = 40  # payload in bytes  
-SIMTIME = 1200000  # duration of one simulation in ms
+SIMTIME = 90 * ONE_MIN_INTERVAL  # duration of one simulation in ms
 HOURS_REPRESENTED = 4
 INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                            # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
@@ -105,10 +110,8 @@ SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
 MAX_NEIGHBORS_PER_HOP = 20
 
-# Hold onto nodes for a fraction of sim time
-# If SIMTIME is an X hour period (simulated),
-# we want this to be 1 of those X hours
-RECENCY_THRESHOLD_SECONDS = round(SIMTIME * (1 / HOURS_REPRESENTED), 0)
+# Currently simtime is too low for this to do anything
+RECENCY_THRESHOLD = ONE_HR_INTERVAL
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
@@ -123,14 +126,11 @@ MOVEMENT_ENABLED = True
 WALKING_METERS_PER_MIN = 96
 BIKING_METERS_PER_MIN = 390
 DRIVING_METERS_PER_MIN = 1500
-# If SIMTIME is an X hour period (simulated), 
-# this is movement every 1 minutes of that X hour period
-SCALED_MOVEMENT_DELAY_1MIN = round(SIMTIME * ((1 / 60) / HOURS_REPRESENTED), 0)
+
 SMART_POSITION_DISTANCE_THRESHOLD = 100
 # 30s minimum time in firmware
-SMART_POSITION_DISTANCE_MIN_TIME = round(SIMTIME * ((30 / (60 * 60)) / HOURS_REPRESENTED), 0)
+SMART_POSITION_DISTANCE_MIN_TIME = 30000
 
 APPROX_RATIO_NODES_MOVING = 0.6
 
 CHANNEL_UTILIZATION_PERIODS = 6
-TEN_SECONDS_INTERVAL = round(SIMTIME * ((10 / (60 * 60)) / HOURS_REPRESENTED), 0)
