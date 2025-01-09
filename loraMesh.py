@@ -279,13 +279,16 @@ class MeshNode():
 		while True:
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
-				if p.origTxNodeId == p.txNodeId:
-					# No harm in setting this to true even if its already true
-					self.hasReceivedDirectNeighborPacket = True
-					# Update knowledge of node based on reception of packet
-					# We only want this to be our direct neighbors because there is no other mechanism
-					# in the simulator to test that
-					self.updateCoverageKnowledge(p.txNodeId)
+				# The latest proposal is to use relay_node as a full NodeNum of every packet
+				# which would provide us much better coverage knowledge than using hops_away
+				# if p.origTxNodeId == p.txNodeId:
+
+				# No harm in setting this to true even if its already true
+				self.hasReceivedDirectNeighborPacket = True
+				# Update knowledge of node based on reception of packet
+				# We only want this to be our direct neighbors because there is no other mechanism
+				# in the simulator to test that
+				self.updateCoverageKnowledge(p.txNodeId)
 
 				if not self.isTransmitting:
 					verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
