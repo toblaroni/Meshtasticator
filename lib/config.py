@@ -93,8 +93,9 @@ def updateRouterDependencies():
 
 updateRouterDependencies()
 
-BLOOM_FILTER_SIZE_BITS = 128
-BLOOM_FILTER_SIZE_BYTES = BLOOM_FILTER_SIZE_BITS // 8
+# Shrink this down to accomodate a 4 byte node id for relay_node
+BLOOM_FILTER_SIZE_BYTES = 13
+BLOOM_FILTER_SIZE_BITS = BLOOM_FILTER_SIZE_BYTES * 8
 
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
