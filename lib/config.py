@@ -110,8 +110,8 @@ SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
 MAX_NEIGHBORS_PER_HOP = 20
 
-# If SIMTIME is less than this, nodes will not age out of coverage
-RECENCY_THRESHOLD = 90 * ONE_MIN_INTERVAL
+# If SIMTIME is less than this, nodes will never fully age out of coverage
+RECENCY_THRESHOLD = 4 * ONE_HR_INTERVAL
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
@@ -131,6 +131,6 @@ SMART_POSITION_DISTANCE_THRESHOLD = 100
 # 30s minimum time in firmware
 SMART_POSITION_DISTANCE_MIN_TIME = 30 * ONE_SECOND_INTERVAL
 
-APPROX_RATIO_NODES_MOVING = 0.6
+APPROX_RATIO_NODES_MOVING = 0.4
 
 CHANNEL_UTILIZATION_PERIODS = 6
