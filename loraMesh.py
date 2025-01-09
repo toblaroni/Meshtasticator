@@ -53,7 +53,6 @@ class MeshNode():
 		self.rebroadcastPackets = 0
 		self.coverageFalsePositives = 0
 		self.coverageFalseNegatives = 0
-		self.hasReceivedDirectNeighborPacket = False
 		self.coverageKnowledge = set()
 		self.lastHeardTime = {}
 		self.isMoving = False
@@ -283,8 +282,6 @@ class MeshNode():
 				# which would provide us much better coverage knowledge than using hops_away
 				# if p.origTxNodeId == p.txNodeId:
 
-				# No harm in setting this to true even if its already true
-				self.hasReceivedDirectNeighborPacket = True
 				# Update knowledge of node based on reception of packet
 				# We only want this to be our direct neighbors because there is no other mechanism
 				# in the simulator to test that
@@ -371,12 +368,12 @@ class MeshNode():
 						self.coverageFalsePositives += fp
 						self.coverageFalseNegatives += fn
 
+						rebroadcastProbability = pNew.getRebroadcastProbability()
 						# In the latest firmware, a node without any direct neighbor knowledge will
 						# rebroadcast with UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
-						if not self.hasReceivedDirectNeighborPacket:
+						# This is NOT the same as looking for a coverage ratio of 0.0
+						if pNew.neighbors == 0:
 							rebroadcastProbability = conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
-						else:
-							rebroadcastProbability = pNew.getRebroadcastProbability()
 
 						rebroadcastProbabilityTest = random.random()
 

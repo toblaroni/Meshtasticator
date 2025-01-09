@@ -57,6 +57,7 @@ class MeshPacket():
 		self.previousCoverageFilter = coverageFilter
 		self.totalNodesInCoverageFilter = prevNodesInCovFilter
 		self.additionalCoverageRatio = 0.0
+		self.neighbors = 0
 		self.setCoverageFilter()
 
 	def setCoverageFilter(self):
@@ -86,6 +87,7 @@ class MeshPacket():
 					newCoverage += 1
 
 		self.totalNodesInCoverageFilter += newCoverage
+		self.neighbors = numNodes
 		if numNodes > 0:
 			self.additionalCoverageRatio = float(newCoverage) / float(numNodes)
 		else:
