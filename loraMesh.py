@@ -279,7 +279,7 @@ class MeshNode():
 		while True:
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
-				# The latest proposal is to use relay_node as a full NodeNum of every packet
+				# The latest proposal is to use relay_node as a full NodeNum on every packet
 				# which would provide us much better coverage knowledge than using hops_away
 				# if p.origTxNodeId == p.txNodeId:
 
