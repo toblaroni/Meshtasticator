@@ -374,6 +374,7 @@ class MeshNode():
 						# This is NOT the same as looking for a coverage ratio of 0.0
 						if pNew.neighbors == 0:
 							rebroadcastProbability = conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
+							verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
 
 						rebroadcastProbabilityTest = random.random()
 

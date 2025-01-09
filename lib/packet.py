@@ -69,6 +69,7 @@ class MeshPacket():
 		if self.previousCoverageFilter is not None:
 			self.coverageFilter.merge(self.previousCoverageFilter)
 
+		# This will prune coverage knowledge and return the latest set
 		coverageSet = self.tx_node.getCoverageKnowledge()
 		for nodeid in coverageSet:
 			self.coverageFilter.add(nodeid)
