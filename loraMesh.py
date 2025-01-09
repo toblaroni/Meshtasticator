@@ -360,7 +360,7 @@ class MeshNode():
 					# BloomRouter: rebroadcast received packet
 					elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
 						verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
-						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter, p.totalNodesInCoverageFilter)
+						pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, p.coverageFilter, p.totalNodesInCoverageFilter, self.env.now)
 						pNew.hopLimit = p.hopLimit-1
 
 						# Record how far off our coverage knowledge is from actual coverage

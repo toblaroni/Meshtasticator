@@ -8,7 +8,7 @@ random.seed(conf.SEED)
 
 
 class MeshPacket(): 
-	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, coverageFilter = None, prevNodesInCovFilter = 0):
+	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, coverageFilter = None, prevNodesInCovFilter = 0):
 		self.origTxNodeId = origTxNodeId
 		self.destId = destId
 		self.txNodeId = txNodeId
@@ -17,6 +17,7 @@ class MeshPacket():
 		self.seq = seq
 		self.requestId = requestId
 		self.genTime = genTime
+		self.now = now
 		self.txpow = conf.PTX
 		self.LplAtN = [0 for _ in range(conf.NR_NODES)]
 		self.rssiAtN = [0 for _ in range(conf.NR_NODES)]
@@ -69,7 +70,7 @@ class MeshPacket():
 		if self.previousCoverageFilter is not None:
 			self.coverageFilter.merge(self.previousCoverageFilter)
 
-		# This will prune coverage knowledge and return the latest set
+		# This will prune coverage knowledge and return the latest
 		coverageSet = self.tx_node.getCoverageKnowledge()
 		for nodeid in coverageSet:
 			self.coverageFilter.add(nodeid)
@@ -94,7 +95,7 @@ class MeshPacket():
 				# We have last heard time, so this is a node in OUR coverage
 				# We don't yet know if its new coverage relative to the previous coverage
 				numNodes += 1
-				age = self.genTime - lastHeard
+				age = self.now - lastHeard
 				if age < conf.RECENCY_THRESHOLD:
 					recency = self.computeRecencyWeight(age, conf.RECENCY_THRESHOLD)
 					# Add the "value" of this node to the total denominator
