@@ -79,17 +79,38 @@ class MeshPacket():
 			return 1
 
 		newCoverage = 0
+		newCoverageWeighted = 0
 		numNodes = 0
+		numNodesWeighted = 0
 		for nodeid, is_sensed in enumerate(self.sensedByN):
+			# If this is the node transmitting the packet, or the original sender, skip
+			# Simulates having `relay_node` in the header as well as `from`
+			if nodeid == self.txNodeId or nodeid == self.origTxNodeId:
+				continue
+
+			# This node is in range
 			if is_sensed:
-				numNodes += 1
-				if not self.previousCoverageFilter.check(nodeid):
-					newCoverage += 1
+				lastHeard = self.tx_node.lastHeardTime[nodeid]
+				if lastHeard is not None:
+					# We have last heard time, so this is a node in OUR coverage
+					# We don't yet know if its new coverage relative to the previous coverage
+					numNodes += 1
+					age = self.genTime - lastHeard
+					if age < conf.RECENCY_THRESHOLD:
+						recency = self.computeRecencyWeight(age, conf.RECENCY_THRESHOLD)
+						# Add the "value" of this node to the total denominator
+						numNodesWeighted += recency
+						# If this node is not in the previous coverage, it's new coverage
+						# Add the "value" of this node to the numerator
+						if not self.previousCoverageFilter.check(nodeid):
+							newCoverage += 1
+							newCoverageWeighted += recency
+
 
 		self.totalNodesInCoverageFilter += newCoverage
 		self.neighbors = numNodes
 		if numNodes > 0:
-			self.additionalCoverageRatio = float(newCoverage) / float(numNodes)
+			self.additionalCoverageRatio = float(newCoverageWeighted) / float(numNodesWeighted)
 		else:
 			self.additionalCoverageRatio = 0.0
 	
@@ -123,6 +144,16 @@ class MeshPacket():
 				fn += 1
 
 		return (fp, fn)
+
+	def computeRecencyWeight(age, timeWindowSecs):
+		"""
+		age: (now - node.lastHeard) in seconds
+		timeWindowSecs: The same recency threshold you use in firmware (e.g., 3600 if 1 hour).
+		"""
+		ratio = 1.0 - (float(age) / float(timeWindowSecs))
+		# clamp to [0..1]
+		return max(0.0, min(1.0, ratio))
+
 
 	
 class MeshMessage():
