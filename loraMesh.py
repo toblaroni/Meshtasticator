@@ -308,7 +308,7 @@ class MeshNode():
 				if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
 					# verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
 					self.usefulPackets += 1
-					self.leastReceivedHopLimit[px.seq] = p.hopLimit
+					self.leastReceivedHopLimit[p.seq] = p.hopLimit
 				if p.hopLimit < self.leastReceivedHopLimit[p.seq]:  # hop limit of received packet is lower than previously received one
 					self.leastReceivedHopLimit[p.seq] = p.hopLimit
 
