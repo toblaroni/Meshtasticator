@@ -117,10 +117,10 @@ class MeshPacket():
 	def getRebroadcastProbability(self):
 		self.refreshAdditionalCoverageRatio()
 
-		rebroadcastProbability = conf.BASELINE_REBROADCAST_PROBABILITY + (self.additionalCoverageRatio * conf.COVERAGE_RATIO_SCALE_FACTOR)
+		rebroadcastProbability = (self.additionalCoverageRatio * conf.COVERAGE_RATIO_SCALE_FACTOR)
 
 		# Clamp to values that make sense
-		rebroadcastProbability = max(0.0, min(1.0, rebroadcastProbability))
+		rebroadcastProbability = max(conf.BASELINE_REBROADCAST_PROBABILITY, min(1.0, rebroadcastProbability))
 
 		return rebroadcastProbability
 	
