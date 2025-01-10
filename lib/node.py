@@ -9,8 +9,9 @@ from lib import config as conf
 
 
 class MeshNode():
-    def __init__(self, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq):
+    def __init__(self, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint):
         self.nodeid = nodeid
+        self.verboseprint = verboseprint
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
             self.y = nodeConfig['y']
@@ -161,7 +162,7 @@ class MeshNode():
                     self.lastBroadcastY = self.y
                     self.lastBroadcastTime = env.now
                 else:
-                    verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25%)")
+                    self.verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25%)")
 
             
             # Wait until next move
@@ -177,7 +178,7 @@ class MeshNode():
         messageSeq = self.messageSeq["val"]
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
         p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now)
-        verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
+        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
         self.packets.append(p)
         self.env.process(self.transmit(p))
         return p
@@ -217,17 +218,17 @@ class MeshNode():
                             if packetSent.ackReceived:
                                 ackReceived = True
                     if ackReceived: 
-                        verboseprint('Node', self.nodeid, 'received ACK on generated message with seq. nr.', p.seq)
+                        self.verboseprint('Node', self.nodeid, 'received ACK on generated message with seq. nr.', p.seq)
                         break
                     else: 
                         if minRetransmissions > 0:  # generate new packet with same sequence number
                             pNew = MeshPacket(self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now)
                             pNew.retransmissions = minRetransmissions-1
-                            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
                         else:
-                            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'reliable send of', p.seq, 'failed.')
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'reliable send of', p.seq, 'failed.')
                             break
             else:  # do not send this message anymore, since it is close to the end of the simulation
                 break
@@ -239,21 +240,21 @@ class MeshNode():
 
             # listen-before-talk from src/mesh/RadioLibInterface.cpp 
             txTime = setTransmitDelay(self, packet) 
-            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'picked wait time', txTime)
+            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'picked wait time', txTime)
             yield self.env.timeout(txTime)
 
             # wait when currently receiving or transmitting, or channel is active
             while any(self.isReceiving) or self.isTransmitting or isChannelActive(self, self.env):
-                verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'is busy Tx-ing', self.isTransmitting, 'or Rx-ing', any(self.isReceiving), 'else channel busy!')
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'is busy Tx-ing', self.isTransmitting, 'or Rx-ing', any(self.isReceiving), 'else channel busy!')
                 txTime = setTransmitDelay(self, packet) 
                 yield self.env.timeout(txTime)
-            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
+            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
             # check if you received an ACK for this message in the meantime
             if packet.seq not in self.leastReceivedHopLimit:
                 self.leastReceivedHopLimit[packet.seq] = packet.hopLimit+1 
             if self.leastReceivedHopLimit[packet.seq] > packet.hopLimit:  # no ACK received yet, so may start transmitting 
-                verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)
                 self.nrPacketsSent += 1
                 for rx_node in self.nodes:
                     if packet.sensedByN[rx_node.nodeid] == True:
@@ -268,7 +269,7 @@ class MeshNode():
                 yield self.env.timeout(packet.timeOnAir)
                 self.isTransmitting = False
             else:  # received ACK: abort transmit, remove from packets generated 
-                verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
                 self.packets.remove(packet)
 
 
@@ -277,11 +278,11 @@ class MeshNode():
             p = yield in_pipe.get()
             if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
                 if not self.isTransmitting:
-                    verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
                     p.onAirToN[self.nodeid] = False 
                     self.isReceiving.append(True)
                 else:  # if you were currently transmitting, you could not have sensed it
-                    verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'was transmitting, so could not receive packet', p.seq)
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'was transmitting, so could not receive packet', p.seq)
                     p.sensedByN[self.nodeid] = False
                     p.onAirToN[self.nodeid] = False
             elif p.sensedByN[self.nodeid]:  # end of reception
@@ -291,10 +292,10 @@ class MeshNode():
                     pass
                 self.airUtilization += p.timeOnAir
                 if p.collidedAtN[self.nodeid]:
-                    verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'could not decode packet.')
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'could not decode packet.')
                     continue
                 p.receivedAtN[self.nodeid] = True
-                verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
                 self.delays.append(self.env.now-p.genTime)
 
                 # Update knowledge of node based on reception of packet
@@ -304,7 +305,7 @@ class MeshNode():
 
                 # update hopLimit for this message
                 if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
-                    # verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
+                    # self.verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
                     self.usefulPackets += 1
                     self.leastReceivedHopLimit[p.seq] = p.hopLimit
                 if p.hopLimit < self.leastReceivedHopLimit[p.seq]:  # hop limit of received packet is lower than previously received one
@@ -313,9 +314,9 @@ class MeshNode():
                 # check if implicit ACK for own generated message
                 if p.origTxNodeId == self.nodeid:
                     if p.isAck:
-                        verboseprint('Node', self.nodeid, 'received real ACK on generated message.')
+                        self.verboseprint('Node', self.nodeid, 'received real ACK on generated message.')
                     else:
-                        verboseprint('Node', self.nodeid, 'received implicit ACK on message sent.')
+                        self.verboseprint('Node', self.nodeid, 'received implicit ACK on message sent.')
                     p.ackReceived = True
                     continue
 
@@ -324,18 +325,18 @@ class MeshNode():
                 for sentPacket in self.packets:
                     # check if ACK for message you currently have in queue
                     if sentPacket.txNodeId == self.nodeid and sentPacket.seq == p.seq:
-                        verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received implicit ACK for message in queue.')
+                        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received implicit ACK for message in queue.')
                         ackReceived = True
                         sentPacket.ackReceived = True
                     # check if real ACK for message sent
                     if sentPacket.origTxNodeId == self.nodeid and p.isAck and sentPacket.seq == p.requestId:
-                        verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received real ACK.')
+                        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received real ACK.')
                         realAckReceived = True
                         sentPacket.ackReceived = True
 
                 # send real ACK if you are the destination and you did not yet send the ACK
                 if p.wantAck and p.destId == self.nodeid and not any(pA.requestId == p.seq for pA in self.packets):
-                    verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'sends a flooding ACK.')
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'sends a flooding ACK.')
                     self.messageSeq["val"] += 1
                     messageSeq = self.messageSeq["val"]
                     self.messages.append(MeshMessage(self.nodeid, p.origTxNodeId, self.env.now, messageSeq))
@@ -347,14 +348,14 @@ class MeshNode():
                     # FloodingRouter: rebroadcast received packet
                     if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.MANAGED_FLOOD:
                         if not self.isClientMute:
-                            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
                             pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now) 
                             pNew.hopLimit = p.hopLimit-1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
                     # BloomRouter: rebroadcast received packet
                     elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
-                        verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
+                        self.verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
                         pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, p.coverageFilter, p.totalNodesInCoverageFilter)
                         pNew.hopLimit = p.hopLimit-1
 
@@ -369,7 +370,7 @@ class MeshNode():
                         # This is NOT the same as looking for a coverage ratio of 0.0
                         if pNew.neighbors == 0:
                             rebroadcastProbability = conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
-                            verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
+                            self.verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
 
                         rebroadcastProbabilityTest = random.random()
 
@@ -378,9 +379,9 @@ class MeshNode():
                             self.rebroadcastPackets += 1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
-                            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
                         else:
-                            verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
                             self.droppedByCoverage += 1
                             self.coverageBeforeDrop += p.totalNodesInCoverageFilter
                 else:

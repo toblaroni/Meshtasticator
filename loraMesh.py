@@ -46,7 +46,7 @@ if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.SHOW_PROBABILITY
 
 graph = Graph()
 for i in range(conf.NR_NODES):
-	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i], messageSeq)
+	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i], messageSeq, verboseprint)
 	nodes.append(node)
 	graph.addNode(node)
 	for b in range(conf.NR_NODES):
