@@ -49,38 +49,8 @@ for i in range(conf.NR_NODES):
 	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i], messageSeq, verboseprint)
 	nodes.append(node)
 	graph.addNode(node)
-	for b in range(conf.NR_NODES):
-		if i != b:
-			if conf.MODEL_ASYMMETRIC_LINKS:
-				conf.LINK_OFFSET[(i,b)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
-			else:
-				conf.LINK_OFFSET[(i,b)] = 0
-
-for a in range(conf.NR_NODES):
-	for b in range(conf.NR_NODES):
-		if a != b:
-			# Calculate constant RSSI in both directions
-			nodeA = nodes[a]
-			nodeB = nodes[b]
-			distAB = calcDist(nodeA.x, nodeB.x, nodeA.y, nodeB.y, nodeA.z, nodeB.z)
-			pathLossAB = estimatePathLoss(distAB, conf.FREQ, nodeA.z, nodeB.z)
-			
-			offsetAB = conf.LINK_OFFSET[(a, b)]
-			offsetBA = conf.LINK_OFFSET[(b, a)]
-			
-			rssiAB = conf.PTX + nodeA.antennaGain + nodeB.antennaGain - pathLossAB - offsetAB
-			rssiBA = conf.PTX + nodeB.antennaGain + nodeA.antennaGain - pathLossAB - offsetBA
-
-			canAhearB = (rssiAB >= conf.SENSMODEM[conf.MODEM])
-			canBhearA = (rssiBA >= conf.SENSMODEM[conf.MODEM])
-
-			totalPairs += 1
-			if canAhearB and canBhearA:
-				symmetricLinks += 1
-			elif canAhearB or canBhearA:
-				asymmetricLinks += 1
-			else:
-				noLinks += 1
+	
+totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(nodes)
 
 if conf.MOVEMENT_ENABLED:
 	env.process(runGraphUpdates(env, graph, nodes))

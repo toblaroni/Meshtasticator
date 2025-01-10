@@ -67,6 +67,8 @@ for p, nrNodes in enumerate(parameters):
 			if len(nodes) == conf.NR_NODES:
 				found = True
 
+		totalPairs, symmetricLinks, asymmetricLinks = setupAsymmetricLinks(nodes)
+
 		# start simulation
 		env.run(until=conf.SIMTIME)
 		nrCollisions = sum([1 for p in packets for n in nodes if p.collidedAtN[n.nodeid] == True])
