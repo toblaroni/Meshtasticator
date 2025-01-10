@@ -63,7 +63,7 @@ NPREAM = 16   # number of preamble symbols from RadioInterface.h
 
 # Misc
 SEED = 44  # random seed to use
-PLOT = True
+PLOT = False
 RANDOM = False
 # End of misc
 
