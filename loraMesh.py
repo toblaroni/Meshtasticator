@@ -278,15 +278,6 @@ class MeshNode():
 		while True:
 			p = yield in_pipe.get()
 			if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
-				# The latest proposal is to use relay_node as a full NodeNum on every packet
-				# which would provide us much better coverage knowledge than using hops_away
-				# if p.origTxNodeId == p.txNodeId:
-
-				# Update knowledge of node based on reception of packet
-				# We only want this to be our direct neighbors because there is no other mechanism
-				# in the simulator to test that
-				self.updateCoverageKnowledge(p.txNodeId)
-
 				if not self.isTransmitting:
 					verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started receiving packet', p.seq, 'from', p.txNodeId)
 					p.onAirToN[self.nodeid] = False 
@@ -308,11 +299,16 @@ class MeshNode():
 				verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(env.now-p.genTime, 2))
 				delays.append(env.now-p.genTime)
 
+				# Update knowledge of node based on reception of packet
+				# We only want this to be our direct neighbors because there is no other mechanism
+				# in the simulator to test that
+				self.updateCoverageKnowledge(p.txNodeId)
+
 				# update hopLimit for this message
 				if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
 					# verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
 					self.usefulPackets += 1
-					self.leastReceivedHopLimit[p.seq] = p.hopLimit
+					self.leastReceivedHopLimit[px.seq] = p.hopLimit
 				if p.hopLimit < self.leastReceivedHopLimit[p.seq]:  # hop limit of received packet is lower than previously received one
 					self.leastReceivedHopLimit[p.seq] = p.hopLimit
 
@@ -514,11 +510,11 @@ if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
 		avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(bloomRebroadcasts)
 	print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
 	estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
-	print("Est. Coverage Filter FPR:", round(estimatedCoverageFPR*100, 2), '%')
+	print("Est. FPR From Bloom Saturation:", round(estimatedCoverageFPR*100, 2), '%')
 	coverageFp = sum([n.coverageFalsePositives for n in nodes])
-	print("Rate of false 'I can cover this node':", round(coverageFp / potentialReceivers * 100, 2), '%')
+	print("I think I can cover this node, but I actually can't:", round(coverageFp / potentialReceivers * 100, 2), '%')
 	coverageFn = sum([n.coverageFalseNegatives for n in nodes])
-	print("Rate of False 'I don't cover this node':", round(coverageFn / potentialReceivers * 100, 2), '%')
+	print("I don't cover this node, but I think I can:", round(coverageFn / potentialReceivers * 100, 2), '%')
 
 if conf.MODEL_ASYMMETRIC_LINKS == True:
 	print("Asymmetric links:", round(asymmetricLinks / totalPairs * 100, 2), '%')

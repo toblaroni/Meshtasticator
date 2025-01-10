@@ -109,7 +109,7 @@ class MeshPacket():
 
 		self.totalNodesInCoverageFilter += newCoverage
 		self.neighbors = numNodes
-		if numNodes > 0:
+		if numNodesWeighted > 0:
 			self.additionalCoverageRatio = float(newCoverageWeighted) / float(numNodesWeighted)
 		else:
 			self.additionalCoverageRatio = 0.0
@@ -134,7 +134,7 @@ class MeshPacket():
 				continue  # skip the transmitter itself
 
 			actuallyInRange = self.sensedByN[n.nodeid]  # True/False
-			knowledgeSaysInRange = (tx_id in n.coverageKnowledge)
+			knowledgeSaysInRange = (n.nodeid in n.coverageKnowledge)
 
 			# If physically not in range, but coverage knowledge says "in range"
 			if (not actuallyInRange) and knowledgeSaysInRange:
