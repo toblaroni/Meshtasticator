@@ -236,7 +236,7 @@ def findRandomPosition(nodes):
 		if tries > 1000:
 			print('Could not find a location to place the node. Try increasing XSIZE/YSIZE or decreasing MINDIST.')
 			break
-	return max(0, x),max(0, y)
+	return max(-conf.XSIZE/2, x),max(-conf.YSIZE/2, y)
 
 
 def calcDist(x0, x1, y0, y1, z0=0, z1=0): 
