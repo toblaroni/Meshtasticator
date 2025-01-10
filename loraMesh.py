@@ -35,7 +35,7 @@ messages = []
 packets = []
 delays = []
 packetsAtN = [[] for _ in range(conf.NR_NODES)]
-messageSeq = 0
+messageSeq = {"val": 0}
 totalPairs = 0
 symmetricLinks = 0
 asymmetricLinks = 0
@@ -93,7 +93,7 @@ env.run(until=conf.SIMTIME)
 print("\n====== END OF SIMULATION ======")
 print("*******************************")
 print(f"\nRouter Type: {conf.SELECTED_ROUTER_TYPE}")
-print('Number of messages created:', messageSeq)
+print('Number of messages created:', messageSeq["val"])
 sent = len(packets)
 if conf.DMs:
 	potentialReceivers = sent
@@ -115,7 +115,7 @@ if nrSensed != 0:
 	print("Percentage of packets that collided:", round(collisionRate*100, 2))
 else:
 	print("No packets sensed.")
-nodeReach = sum([n.usefulPackets for n in nodes])/(messageSeq*(conf.NR_NODES-1))
+nodeReach = sum([n.usefulPackets for n in nodes])/(messageSeq["val"]*(conf.NR_NODES-1))
 print("Average percentage of nodes reached:", round(nodeReach*100, 2))
 if nrReceived != 0:
 	usefulness = sum([n.usefulPackets for n in nodes])/nrReceived  # nr of packets that delivered to a packet to a new receiver out of all packets sent

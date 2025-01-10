@@ -54,7 +54,7 @@ for p, nrNodes in enumerate(parameters):
 		packets = []
 		delays = []
 		packetsAtN = [[] for _ in range(conf.NR_NODES)]
-		messageSeq = 0
+		messageSeq = {"val": 0}
 
 		found = False
 		while not found:
@@ -77,8 +77,8 @@ for p, nrNodes in enumerate(parameters):
 			collisionRate[rep] = float((nrCollisions)/nrSensed)*100
 		else:
 			collisionRate[rep] = np.NaN
-		if messageSeq != 0: 
-			nodeReach[rep] = nrUseful/(messageSeq*(conf.NR_NODES-1))*100
+		if messageSeq["val"] != 0: 
+			nodeReach[rep] = nrUseful/(messageSeq["val"]*(conf.NR_NODES-1))*100
 		else: 
 			nodeReach[rep] = np.NaN
 		if nrReceived != 0:
@@ -110,7 +110,7 @@ for p, nrNodes in enumerate(parameters):
 			"SIMTIME": conf.SIMTIME,
 			"PERIOD": conf.PERIOD,
 			"PACKETLENGTH": conf.PACKETLENGTH,  
-			"nrMessages": messageSeq
+			"nrMessages": messageSeq["val"]
 		}
 		subdir = "hopLimit3"
 		simReport(data, subdir, nrNodes)
