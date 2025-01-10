@@ -60,14 +60,14 @@ for p, nrNodes in enumerate(parameters):
 		while not found:
 			nodes = []
 			for nodeId in range(conf.NR_NODES):
-				node = MeshNode(nodes, env, bc_pipe, nodeId, conf.PERIOD, messages, packetsAtN, packets, delays, None, messageSeq)
+				node = MeshNode(nodes, env, bc_pipe, nodeId, conf.PERIOD, messages, packetsAtN, packets, delays, None, messageSeq, verboseprint)
 				if node.x == None:
 					break
 				nodes.append(node)
 			if len(nodes) == conf.NR_NODES:
 				found = True
 
-		totalPairs, symmetricLinks, asymmetricLinks = setupAsymmetricLinks(nodes)
+		totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(nodes)
 
 		# start simulation
 		env.run(until=conf.SIMTIME)
