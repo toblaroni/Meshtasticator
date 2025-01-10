@@ -28,7 +28,7 @@ ONE_HR_INTERVAL = ONE_MIN_INTERVAL * 60
 MODEM = 4  # LoRa modem to use: 0 = ShortFast, 1 = Short Slow, ... 7 = Very Long Slow (default 4 is LongFast)
 PERIOD = 100 * ONE_SECOND_INTERVAL  # mean period of generating a new message with exponential distribution in ms
 PACKETLENGTH = 40  # payload in bytes  
-SIMTIME = 120 * ONE_MIN_INTERVAL  # duration of one simulation in ms
+SIMTIME = 90 * ONE_MIN_INTERVAL  # duration of one simulation in ms
 INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                            # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
 COLLISION_DUE_TO_INTERFERENCE = False
@@ -99,12 +99,12 @@ BLOOM_FILTER_SIZE_BITS = BLOOM_FILTER_SIZE_BYTES * 8
 
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
-COVERAGE_RATIO_SCALE_FACTOR = 3.0
+COVERAGE_RATIO_SCALE_FACTOR = 5
 
 # Set this to non-zero value to make it possible that a 
 # node without any additional coverage may still rebroadcast
-BASELINE_REBROADCAST_PROBABILITY = 0.1
-UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 0.8
+BASELINE_REBROADCAST_PROBABILITY = 0.0
+UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
 
 SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
