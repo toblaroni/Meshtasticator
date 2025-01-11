@@ -177,7 +177,7 @@ class MeshNode():
         self.messageSeq["val"] += 1
         messageSeq = self.messageSeq["val"]
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
-        p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now)
+        p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
         self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
         self.packets.append(p)
         self.env.process(self.transmit(p))
@@ -222,7 +222,7 @@ class MeshNode():
                         break
                     else: 
                         if minRetransmissions > 0:  # generate new packet with same sequence number
-                            pNew = MeshPacket(self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now)
+                            pNew = MeshPacket(self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint)
                             pNew.retransmissions = minRetransmissions-1
                             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
                             self.packets.append(pNew)
@@ -340,7 +340,7 @@ class MeshNode():
                     self.messageSeq["val"] += 1
                     messageSeq = self.messageSeq["val"]
                     self.messages.append(MeshMessage(self.nodeid, p.origTxNodeId, self.env.now, messageSeq))
-                    pAck = MeshPacket(self.nodes, self.nodeid, p.origTxNodeId, self.nodeid, conf.ACKLENGTH, messageSeq, self.env.now, False, True, p.seq, self.env.now) 
+                    pAck = MeshPacket(self.nodes, self.nodeid, p.origTxNodeId, self.nodeid, conf.ACKLENGTH, messageSeq, self.env.now, False, True, p.seq, self.env.now, self.verboseprint) 
                     self.packets.append(pAck)
                     self.env.process(self.transmit(pAck))
                 # Rebroadcasting Logic for received message. This is a broadcast or a DM not meant for us.
@@ -349,14 +349,14 @@ class MeshNode():
                     if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.MANAGED_FLOOD:
                         if not self.isClientMute:
                             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
-                            pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now) 
+                            pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                             pNew.hopLimit = p.hopLimit-1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
                     # BloomRouter: rebroadcast received packet
                     elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
                         self.verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
-                        pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, p.coverageFilter, p.totalNodesInCoverageFilter)
+                        pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint, p.coverageFilter, p.totalNodesInCoverageFilter)
                         pNew.hopLimit = p.hopLimit-1
 
                         # Record how far off our coverage knowledge is from actual coverage

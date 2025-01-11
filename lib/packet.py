@@ -8,7 +8,8 @@ random.seed(conf.SEED)
 
 
 class MeshPacket(): 
-	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, coverageFilter = None, prevNodesInCovFilter = 0):
+	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, verboseprint, coverageFilter = None, prevNodesInCovFilter = 0):
+		self.verboseprint = verboseprint
 		self.origTxNodeId = origTxNodeId
 		self.destId = destId
 		self.txNodeId = txNodeId
@@ -116,18 +117,18 @@ class MeshPacket():
 
 		# If we don't have previous coverage, all coverage is new!
 		if self.previousCoverageFilter is None:
-			self.verboseprint('Packet', self.seq, 'arrived to', self.nodeid, 'without coverage. Will rebroadcast.')
+			self.verboseprint('Packet', self.seq, 'arrived to', self.txNodeId, 'without coverage. Will rebroadcast.')
 			return 1
 		
 		if conf.NR_NODES <= conf.SMALL_MESH_NUM_NODES:
-			self.verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
+			self.verboseprint('Node', self.txNodeId, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
 			return conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
 
 		# In the latest firmware, a node without any direct neighbor knowledge will
 		# rebroadcast with UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
 		# This is NOT the same as looking for a coverage ratio of 0.0
 		if self.neighbors == 0:
-			self.verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
+			self.verboseprint('Node', self.txNodeId, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
 			return conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
 
 		# If we get here, we have coverage knowledge sufficient to derive a suitable probability
