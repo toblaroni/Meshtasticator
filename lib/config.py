@@ -28,7 +28,7 @@ ONE_HR_INTERVAL = ONE_MIN_INTERVAL * 60
 MODEM = 4  # LoRa modem to use: 0 = ShortFast, 1 = Short Slow, ... 7 = Very Long Slow (default 4 is LongFast)
 PERIOD = 100 * ONE_SECOND_INTERVAL  # mean period of generating a new message with exponential distribution in ms
 PACKETLENGTH = 40  # payload in bytes  
-SIMTIME = 90 * ONE_MIN_INTERVAL  # duration of one simulation in ms
+SIMTIME = 30 * ONE_MIN_INTERVAL  # duration of one simulation in ms
 INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                            # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
 COLLISION_DUE_TO_INTERFERENCE = False
@@ -79,7 +79,7 @@ class ROUTER_TYPE(Enum):
 ####### SET ROUTER TYPE BELOW ########
 ######################################
 
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
 
 ######################################
 ####### SET ROUTER TYPE ABOVE ########
@@ -133,6 +133,11 @@ ORIGINALLY_SELECTED_HOPS = None
 def updateRouterDependencies():
     global hopLimit, HEADERLENGTH, ORIGINALLY_SELECTED_HOPS
 
+    # Overwrite hop limit in the case of Bloom routing
+    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
+        hopLimit = 15
+        HEADERLENGTH = 32
+
     if ORIGINALLY_SELECTED_HOPS is None:
         ORIGINALLY_SELECTED_HOPS = hopLimit
 
@@ -144,8 +149,3 @@ def updateRouterDependencies():
         else:
             hopLimit = ORIGINALLY_SELECTED_HOPS
             print(f"\nReverting back to {ORIGINALLY_SELECTED_HOPS} hops because mesh size is > {SMALL_MESH_NUM_NODES}")
-
-    # Overwrite hop limit in the case of Bloom routing
-    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
-        hopLimit = 15
-        HEADERLENGTH = 32
