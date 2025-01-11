@@ -23,7 +23,7 @@ else:
 		pass
 
 repetitions = 1
-numberOfNodes = [3, 10, 25, 50, 100, 200]
+numberOfNodes = [15, 25, 50, 100, 200]
 collisions = []
 reachability = []
 usefulness = []
@@ -187,3 +187,7 @@ plt.errorbar(numberOfNodes, usefulness, usefulnessStds, fmt='-o', capsize=3, eco
 plt.xlabel('#nodes')
 plt.ylabel('Usefulness (%)')
 plt.show()
+
+def updateProgress():
+	env.timeout(15 * conf.ONE_SECOND_INTERVAL)
+	print(f"Simulation running: {round(messageSeq/len(packets)*100, 2)}%")

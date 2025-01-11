@@ -76,10 +76,6 @@ class MeshPacket():
 			self.coverageFilter.add(nodeid)
 	
 	def refreshAdditionalCoverageRatio(self):
-		# If we don't have previous coverage, all coverage is new!
-		if self.previousCoverageFilter is None:
-			return 1
-
 		newCoverage = 0
 		newCoverageWeighted = 0
 		numNodes = 0
@@ -109,6 +105,7 @@ class MeshPacket():
 
 		self.totalNodesInCoverageFilter += newCoverage
 		self.neighbors = numNodes
+
 		if numNodesWeighted > 0:
 			self.additionalCoverageRatio = float(newCoverageWeighted) / float(numNodesWeighted)
 		else:
@@ -117,8 +114,24 @@ class MeshPacket():
 	def getRebroadcastProbability(self):
 		self.refreshAdditionalCoverageRatio()
 
-		rebroadcastProbability = (self.additionalCoverageRatio * conf.COVERAGE_RATIO_SCALE_FACTOR)
+		# If we don't have previous coverage, all coverage is new!
+		if self.previousCoverageFilter is None:
+			self.verboseprint('Packet', self.seq, 'arrived to', self.nodeid, 'without coverage. Will rebroadcast.')
+			return 1
+		
+		if conf.NR_NODES <= conf.SMALL_MESH_NUM_NODES:
+			self.verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
+			return conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
 
+		# In the latest firmware, a node without any direct neighbor knowledge will
+		# rebroadcast with UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
+		# This is NOT the same as looking for a coverage ratio of 0.0
+		if self.neighbors == 0:
+			self.verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
+			return conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
+
+		# If we get here, we have coverage knowledge sufficient to derive a suitable probability
+		rebroadcastProbability = (self.additionalCoverageRatio * conf.COVERAGE_RATIO_SCALE_FACTOR)
 		# Clamp to values that make sense
 		rebroadcastProbability = max(conf.BASELINE_REBROADCAST_PROBABILITY, min(1.0, rebroadcastProbability))
 

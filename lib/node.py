@@ -365,12 +365,6 @@ class MeshNode():
                         self.coverageFalseNegatives += fn
 
                         rebroadcastProbability = pNew.getRebroadcastProbability()
-                        # In the latest firmware, a node without any direct neighbor knowledge will
-                        # rebroadcast with UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
-                        # This is NOT the same as looking for a coverage ratio of 0.0
-                        if pNew.neighbors == 0:
-                            rebroadcastProbability = conf.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY
-                            self.verboseprint('Node', self.nodeid, 'has unknown coverage. Falling back to UKNOWN_COVERAGE_REBROADCAST_PROBABILITY')
 
                         rebroadcastProbabilityTest = random.random()
 

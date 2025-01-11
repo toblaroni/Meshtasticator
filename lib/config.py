@@ -97,7 +97,7 @@ COVERAGE_RATIO_SCALE_FACTOR = 3
 # node without any additional coverage may still rebroadcast
 BASELINE_REBROADCAST_PROBABILITY = 0.0
 UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
-SMALL_MESH_NUM_NODES = 15
+SMALL_MESH_NUM_NODES = 25
 
 SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
@@ -128,25 +128,24 @@ APPROX_RATIO_NODES_MOVING = 0.4
 
 CHANNEL_UTILIZATION_PERIODS = 6
 
-ORIGINALLY_SELECTED_ROUTER_TYPE = None
+ORIGINALLY_SELECTED_HOPS = None
 
 def updateRouterDependencies():
-    global SELECTED_ROUTER_TYPE, ORIGINALLY_SELECTED_ROUTER_TYPE
+    global hopLimit, HEADERLENGTH, ORIGINALLY_SELECTED_HOPS
 
-    if ORIGINALLY_SELECTED_ROUTER_TYPE is None:
-        ORIGINALLY_SELECTED_ROUTER_TYPE = SELECTED_ROUTER_TYPE
+    if ORIGINALLY_SELECTED_HOPS is None:
+        ORIGINALLY_SELECTED_HOPS = hopLimit
 
-    if ORIGINALLY_SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
+    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
         if NR_NODES <= SMALL_MESH_NUM_NODES:
-            SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
-            print("\nBloom router was selected, but disabled for `small mesh`")
+            hopLimit = 3
+            print("\n`Small Mesh` detected, reverting to 3 hops")
             return
         else:
-            SELECTED_ROUTER_TYPE = ORIGINALLY_SELECTED_ROUTER_TYPE
-            print(f"\nReverting back to {ORIGINALLY_SELECTED_ROUTER_TYPE} because mesh size is > {SMALL_MESH_NUM_NODES}")
+            hopLimit = ORIGINALLY_SELECTED_HOPS
+            print(f"\nReverting back to {ORIGINALLY_SELECTED_HOPS} hops because mesh size is > {SMALL_MESH_NUM_NODES}")
 
     # Overwrite hop limit in the case of Bloom routing
     if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
-        global hopLimit, HEADERLENGTH
         hopLimit = 15
         HEADERLENGTH = 32
