@@ -22,9 +22,8 @@ else:
 	def verboseprint(*args, **kwargs): 
 		pass
 
-
-repetitions = 10
-parameters = [3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25]
+repetitions = 1
+numberOfNodes = [3, 10, 25, 50, 100, 200]
 collisions = []
 reachability = []
 usefulness = []
@@ -35,14 +34,25 @@ reachabilityStds = []
 usefulnessStds = []
 delayStds = []
 txAirUtilsStds = []
-for p, nrNodes in enumerate(parameters):
+coverageFpStds = []
+coverageFnStds = []
+asymmetricLinkRateStds = []
+symmetricLinkRateStds = []
+noLinkRateStds = []
+for p, nrNodes in enumerate(numberOfNodes):
 	conf.NR_NODES = nrNodes
+	conf.updateRouterDependencies()
 	nodeReach = [0 for _ in range(repetitions)]
 	nodeUsefulness = [0 for _ in range(repetitions)]
 	collisionRate = [0 for _ in range(repetitions)]
 	meanDelay = [0 for _ in range(repetitions)]
 	meanTxAirUtilization = [0 for _ in range(repetitions)]
-	print("\nStart of", p+1, "out of", len(parameters), "value", nrNodes)
+	coverageFp = [0 for _ in range(repetitions)]
+	coverageFn = [0 for _ in range(repetitions)]
+	asymmetricLinkRate = [0 for _ in range(repetitions)]
+	symmetricLinkRate = [0 for _ in range(repetitions)]
+	noLinkRate = [0 for _ in range(repetitions)]
+	print("\nStart of", p+1, "out of", len(numberOfNodes), "value", nrNodes)
 	for rep in range(repetitions):
 		setBatch(rep)
 		random.seed(rep)
@@ -89,6 +99,15 @@ for p, nrNodes in enumerate(parameters):
 			nodeUsefulness[rep] = np.NaN
 		meanDelay[rep] = np.nanmean(delays)
 		meanTxAirUtilization[rep] = sum([n.txAirUtilization for n in nodes])/conf.NR_NODES
+		if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
+			potentialReceivers = len(packets)*(conf.NR_NODES-1)
+			coverageFp[rep] = round((sum([n.coverageFalsePositives for n in nodes])/potentialReceivers*100), 2)
+			coverageFn[rep] = round((sum([n.coverageFalseNegatives for n in nodes])/potentialReceivers*100), 2)
+
+		if conf.MODEL_ASYMMETRIC_LINKS == True:
+			asymmetricLinkRate[rep] = round(asymmetricLinks / totalPairs * 100, 2)
+			symmetricLinkRate[rep] = round(symmetricLinks / totalPairs * 100, 2)
+			noLinkRate[rep] = round(noLinks / totalPairs * 100, 2)
 	if SAVE:
 		print('Saving to file...')
 		data = {
@@ -116,11 +135,21 @@ for p, nrNodes in enumerate(parameters):
 		}
 		subdir = "hopLimit3"
 		simReport(data, subdir, nrNodes)
+	if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.NR_NODES <= conf.SMALL_MESH_NUM_NODES:
+		print("'Small Mesh' correction was applied to this simulation")
 	print('Collision rate average:', round(np.nanmean(collisionRate), 2))
 	print('Reachability average:', round(np.nanmean(nodeReach), 2))
 	print('Usefulness average:', round(np.nanmean(nodeUsefulness), 2))
 	print('Delay average:', round(np.nanmean(meanDelay), 2))
 	print('Tx air utilization average:', round(np.nanmean(meanTxAirUtilization), 2))
+	if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
+		print("I think I can cover this node, but I can't:", round(np.nanmean(coverageFp), 2))
+		print("I don't think I can cover this node, but I can:", round(np.nanmean(coverageFn), 2))
+	if conf.MODEL_ASYMMETRIC_LINKS == True:
+		print('Asymmetric Links:', round(np.nanmean(asymmetricLinkRate), 2))
+		print('Symmetric Links:', round(np.nanmean(symmetricLinkRate), 2))
+		print('No Links:', round(np.nanmean(noLinkRate), 2))
+	
 	collisions.append(np.nanmean(collisionRate))
 	reachability.append(np.nanmean(nodeReach))
 	usefulness.append(np.nanmean(nodeUsefulness))
@@ -131,25 +160,30 @@ for p, nrNodes in enumerate(parameters):
 	usefulnessStds.append(np.nanstd(nodeUsefulness))
 	delayStds.append(np.nanstd(meanDelay))
 	txAirUtilsStds.append(np.nanstd(meanTxAirUtilization))
+	coverageFpStds.append(np.nanmean(coverageFp))
+	coverageFnStds.append(np.nanmean(coverageFn))
+	asymmetricLinkRateStds.append(np.nanmean(asymmetricLinkRate))
+	symmetricLinkRateStds.append(np.nanmean(symmetricLinkRate))
+	noLinkRateStds.append(np.nanmean(noLinkRate))
 
 
-plt.errorbar(parameters, collisions, collisionStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
+plt.errorbar(numberOfNodes, collisions, collisionStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
 plt.xlabel('#nodes')
 plt.ylabel('Collision rate (%)')
 plt.figure()
-plt.errorbar(parameters, meanDelays, delayStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
+plt.errorbar(numberOfNodes, meanDelays, delayStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
 plt.xlabel('#nodes')
 plt.ylabel('Average delay (ms)')
 plt.figure()
-plt.errorbar(parameters, meanTxAirUtils, txAirUtilsStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
+plt.errorbar(numberOfNodes, meanTxAirUtils, txAirUtilsStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
 plt.xlabel('#nodes')
 plt.ylabel('Average Tx air utilization (ms)')
 plt.figure()
-plt.errorbar(parameters, reachability, reachabilityStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
+plt.errorbar(numberOfNodes, reachability, reachabilityStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
 plt.xlabel('#nodes')
 plt.ylabel('Reachability (%)')
 plt.figure()
-plt.errorbar(parameters, usefulness, usefulnessStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
+plt.errorbar(numberOfNodes, usefulness, usefulnessStds, fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5)
 plt.xlabel('#nodes')
 plt.ylabel('Usefulness (%)')
 plt.show()

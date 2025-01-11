@@ -55,6 +55,8 @@ totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(node
 if conf.MOVEMENT_ENABLED:
 	env.process(runGraphUpdates(env, graph, nodes))
 
+conf.updateRouterDependencies()
+
 # start simulation
 print("\n====== START OF SIMULATION ======")
 env.run(until=conf.SIMTIME)
@@ -106,9 +108,9 @@ if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
 	estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
 	print("Est. FPR From Bloom Saturation:", round(estimatedCoverageFPR*100, 2), '%')
 	coverageFp = sum([n.coverageFalsePositives for n in nodes])
-	print("I think I can cover this node, but I actually can't:", round(coverageFp / potentialReceivers * 100, 2), '%')
+	print("I think I can cover this node, but I can't:", round(coverageFp / potentialReceivers * 100, 2), '%')
 	coverageFn = sum([n.coverageFalseNegatives for n in nodes])
-	print("I don't cover this node, but I think I can:", round(coverageFn / potentialReceivers * 100, 2), '%')
+	print("I don't think I can cover this node, but I can:", round(coverageFn / potentialReceivers * 100, 2), '%')
 
 if conf.MODEL_ASYMMETRIC_LINKS == True:
 	print("Asymmetric links:", round(asymmetricLinks / totalPairs * 100, 2), '%')

@@ -79,19 +79,11 @@ class ROUTER_TYPE(Enum):
 ####### SET ROUTER TYPE BELOW ########
 ######################################
 
-SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
+SELECTED_ROUTER_TYPE = ROUTER_TYPE.BLOOM
 
 ######################################
 ####### SET ROUTER TYPE ABOVE ########
 ######################################
-
-def updateRouterDependencies():
-    # Overwrite hop limit in the case of Bloom routing
-    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
-        hopLimit = 15
-        HEADERLENGTH = 32
-
-updateRouterDependencies()
 
 # Shrink this down to accomodate a 4 byte node id for relay_node
 BLOOM_FILTER_SIZE_BYTES = 13
@@ -99,12 +91,13 @@ BLOOM_FILTER_SIZE_BITS = BLOOM_FILTER_SIZE_BYTES * 8
 
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
-COVERAGE_RATIO_SCALE_FACTOR = 5
+COVERAGE_RATIO_SCALE_FACTOR = 3
 
 # Set this to non-zero value to make it possible that a 
 # node without any additional coverage may still rebroadcast
 BASELINE_REBROADCAST_PROBABILITY = 0.0
 UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
+SMALL_MESH_NUM_NODES = 15
 
 SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
@@ -117,7 +110,7 @@ RECENCY_THRESHOLD = 4 * ONE_HR_INTERVAL
 # Adds a random offset to the link quality of each link
 MODEL_ASYMMETRIC_LINKS = True
 MODEL_ASYMMETRIC_LINKS_MEAN = 0
-MODEL_ASYMMETRIC_LINKS_STDDEV = 3
+MODEL_ASYMMETRIC_LINKS_STDDEV = 4
 # Stores the offset for each link
 # Populated when the simulator first starts
 LINK_OFFSET = {}
@@ -131,6 +124,29 @@ SMART_POSITION_DISTANCE_THRESHOLD = 100
 # 30s minimum time in firmware
 SMART_POSITION_DISTANCE_MIN_TIME = 30 * ONE_SECOND_INTERVAL
 
-APPROX_RATIO_NODES_MOVING = 0.3
+APPROX_RATIO_NODES_MOVING = 0.4
 
 CHANNEL_UTILIZATION_PERIODS = 6
+
+ORIGINALLY_SELECTED_ROUTER_TYPE = None
+
+def updateRouterDependencies():
+    global SELECTED_ROUTER_TYPE, ORIGINALLY_SELECTED_ROUTER_TYPE
+
+    if ORIGINALLY_SELECTED_ROUTER_TYPE is None:
+        ORIGINALLY_SELECTED_ROUTER_TYPE = SELECTED_ROUTER_TYPE
+
+    if ORIGINALLY_SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
+        if NR_NODES <= SMALL_MESH_NUM_NODES:
+            SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
+            print("\nBloom router was selected, but disabled for `small mesh`")
+            return
+        else:
+            SELECTED_ROUTER_TYPE = ORIGINALLY_SELECTED_ROUTER_TYPE
+            print(f"\nReverting back to {ORIGINALLY_SELECTED_ROUTER_TYPE} because mesh size is > {SMALL_MESH_NUM_NODES}")
+
+    # Overwrite hop limit in the case of Bloom routing
+    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
+        global hopLimit, HEADERLENGTH
+        hopLimit = 15
+        HEADERLENGTH = 32
