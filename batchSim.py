@@ -33,47 +33,47 @@ else:
 ###########################################################
 # Progress-logging process
 ###########################################################
-def simulationProgress(env, currentRep, repetitions, end_time):
+def simulationProgress(env, currentRep, repetitions, endTime):
     """
     Keep track of the ratio of real time per sim-second over
     a fixed sliding window, so if the simulation slows down near the end,
     the time-left estimate adapts quickly.
     """
-    start_wall_time = time.time()
-    last_wall_time = start_wall_time
-    last_env_time = env.now
+    startWallTime = time.time()
+    lastWallTime = startWallTime
+    lastEnvTime = env.now
     
     # We'll store the last N ratio measurements
     N = 10
     ratios = collections.deque(maxlen=N)
     
     while True:
-        fraction = env.now / end_time
+        fraction = env.now / endTime
         fraction = min(fraction, 1.0)
         
         # Current real time
-        current_wall_time = time.time()
-        real_time_delta = current_wall_time - last_wall_time
-        sim_time_delta = env.now - last_env_time
+        currentWallTime = time.time()
+        realTimeDelta = currentWallTime - lastWallTime
+        simTimeDelta = env.now - lastEnvTime
         
         # Compute new ratio if sim actually advanced
-        if sim_time_delta > 0:
-            instant_ratio = real_time_delta / sim_time_delta
+        if simTimeDelta > 0:
+            instant_ratio = realTimeDelta / simTimeDelta
             ratios.append(instant_ratio)
         
         # If we have at least one ratio, compute a 'recent average'
         if len(ratios) > 0:
-            avg_ratio = sum(ratios) / len(ratios)
+            avgRatio = sum(ratios) / len(ratios)
         else:
-            avg_ratio = 0.0
+            avgRatio = 0.0
         
-        # time_left_est = avg_ratio * (end_time - env.now)
-        sim_time_remaining = end_time - env.now
-        time_left_est = sim_time_remaining * avg_ratio
+        # time_left_est = avg_ratio * (endTime - env.now)
+        simTimeRemaining = endTime - env.now
+        timeLeftEst = simTimeRemaining * avgRatio
         
         # Format mm:ss
-        minutes = int(time_left_est // 60)
-        seconds = int(time_left_est % 60)
+        minutes = int(timeLeftEst // 60)
+        seconds = int(timeLeftEst % 60)
         
         print(
             f"\rSimulation {currentRep+1}/{repetitions} progress: "
@@ -86,8 +86,8 @@ def simulationProgress(env, currentRep, repetitions, end_time):
             break
         
         # Update references
-        last_wall_time = current_wall_time
-        last_env_time = env.now
+        lastWallTime = currentWallTime
+        lastEnvTime = env.now
         
         yield env.timeout(conf.ONE_MIN_INTERVAL)
 
