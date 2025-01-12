@@ -88,6 +88,7 @@ SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
 # Shrink this down to accomodate a 4 byte node id for relay_node
 BLOOM_FILTER_SIZE_BYTES = 13
 BLOOM_FILTER_SIZE_BITS = BLOOM_FILTER_SIZE_BYTES * 8
+BLOOM_HOPS = 15
 
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
@@ -96,15 +97,15 @@ COVERAGE_RATIO_SCALE_FACTOR = 3
 # Set this to non-zero value to make it possible that a 
 # node without any additional coverage may still rebroadcast
 BASELINE_REBROADCAST_PROBABILITY = 0.0
-UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
-SMALL_MESH_NUM_NODES = 25
+UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 0.8
+SMALL_MESH_NUM_NODES = 30
 
 SHOW_PROBABILITY_FUNCTION_COMPARISON = False
 
 MAX_NEIGHBORS_PER_HOP = 20
 
 # If SIMTIME is less than this, nodes will never fully age out of coverage
-RECENCY_THRESHOLD = 4 * ONE_HR_INTERVAL
+RECENCY_THRESHOLD = 1 * ONE_HR_INTERVAL
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
@@ -128,24 +129,21 @@ APPROX_RATIO_NODES_MOVING = 0.4
 
 CHANNEL_UTILIZATION_PERIODS = 6
 
-ORIGINALLY_SELECTED_HOPS = None
-
 def updateRouterDependencies():
-    global hopLimit, HEADERLENGTH, ORIGINALLY_SELECTED_HOPS
+    global hopLimit, HEADERLENGTH
 
     # Overwrite hop limit in the case of Bloom routing
     if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
-        hopLimit = 15
+        hopLimit = BLOOM_HOPS
         HEADERLENGTH = 32
-
-    if ORIGINALLY_SELECTED_HOPS is None:
-        ORIGINALLY_SELECTED_HOPS = hopLimit
 
     if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
         if NR_NODES <= SMALL_MESH_NUM_NODES:
             hopLimit = 3
+            HEADERLENGTH = 16
             print("\n`Small Mesh` detected, reverting to 3 hops")
             return
         else:
-            hopLimit = ORIGINALLY_SELECTED_HOPS
-            print(f"\nReverting back to {ORIGINALLY_SELECTED_HOPS} hops because mesh size is > {SMALL_MESH_NUM_NODES}")
+            hopLimit = BLOOM_HOPS
+            HEADERLENGTH = 32
+            print(f"\nReverting back to {BLOOM_HOPS} hops because mesh size is > {SMALL_MESH_NUM_NODES}")

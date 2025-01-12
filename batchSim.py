@@ -28,11 +28,27 @@ else:
     def verboseprint(*args, **kwargs): 
         pass
 
+###########################################################
+# Progress-logging process
+###########################################################
+def simulationProgress(env, currentRep, repetitions, end_time):
+    """
+    Periodically prints the fraction of simulation time elapsed,
+    overwriting the same line each time.
+    """
+    while True:
+        fraction = env.now / end_time
+        # Overwrite the same line with \r, flush so it appears immediately
+        print(f"\rSimulation {currentRep+1} of {repetitions} progress: {fraction*100:.1f}% ", end="", flush=True)
+        if env.now >= end_time:
+            break
+        yield env.timeout(1) 
+
 # Add your router types here
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
 
-repetitions = 1
-numberOfNodes = [15, 25, 50, 100, 200]
+repetitions = 3
+numberOfNodes = [3, 15, 25, 30, 40, 50, 80, 100, 150, 200]
 
 # We will collect the metrics in dictionaries keyed by router type.
 # For example: collisions_dict[ routerType ] = [list of mean collisions, one per nrNodes]
@@ -104,6 +120,7 @@ for routerType in routerTypes:
 
     # Inner loop for each nrNodes
     for p, nrNodes in enumerate(numberOfNodes):
+            
         conf.NR_NODES = nrNodes
         conf.updateRouterDependencies()
 
@@ -125,6 +142,9 @@ for routerType in routerTypes:
             random.seed(rep)
             env = simpy.Environment()
             bc_pipe = BroadcastPipe(env)
+
+            # Start the progress-logging process
+            env.process(simulationProgress(env, rep, repetitions, conf.SIMTIME))
 
             nodes = []
             messages = []
@@ -279,7 +299,6 @@ for routerType in routerTypes:
 # Plotting
 ###########################################################
 
-# For convenience, define a small helper function to get a label from routerType
 def router_type_label(rt):
     if rt == conf.ROUTER_TYPE.MANAGED_FLOOD:
         return "Managed Flood"
@@ -365,6 +384,13 @@ plt.title('Usefulness by Router Type')
 
 plt.show()
 
-def updateProgress():
-    env.timeout(15 * conf.ONE_SECOND_INTERVAL)
-    print(f"Simulation running: {round(messageSeq/len(packets)*100, 2)}%")
+plt.figure()
+for rt in routerTypes:
+    if rt == conf.ROUTER_TYPE.BLOOM:
+        plt.plot(numberOfNodes, coverageFp_dict[rt], '-o', label=f"Cov False Pos: {router_type_label(rt)}")
+        plt.plot(numberOfNodes, coverageFn_dict[rt], '-o', label=f"Cov False Neg: {router_type_label(rt)}")
+plt.xlabel('#nodes')
+plt.ylabel('Coverage rates (%)')
+plt.legend()
+plt.title('Coverage (Bloom Only)')
+plt.show()

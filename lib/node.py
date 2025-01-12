@@ -299,8 +299,6 @@ class MeshNode():
                 self.delays.append(self.env.now-p.genTime)
 
                 # Update knowledge of node based on reception of packet
-                # We only want this to be our direct neighbors because there is no other mechanism
-                # in the simulator to test that
                 self.updateCoverageKnowledge(p.txNodeId)
 
                 # update hopLimit for this message
