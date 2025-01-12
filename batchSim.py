@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 import matplotlib
 
 try:
@@ -31,18 +32,50 @@ else:
 ###########################################################
 # Progress-logging process
 ###########################################################
-def simulationProgress(env, currentRep, repetitions, end_time):
+def simulationProgress(env, currentRep, repetitions, endTime):
     """
-    Periodically prints the fraction of simulation time elapsed,
-    overwriting the same line each time.
+    Periodically prints how far along we are in sim-time vs. end_time,
+    plus an estimate of real-world time remaining, using a fraction-based approach.
     """
+    startWallTime = time.time()
+
     while True:
-        fraction = env.now / end_time
-        # Overwrite the same line with \r, flush so it appears immediately
-        print(f"\rSimulation {currentRep+1} of {repetitions} progress: {fraction*100:.1f}% ", end="", flush=True)
-        if env.now >= end_time:
+        fraction = env.now / endTime
+        if fraction >= 1.0:
+            fraction = 1.0  # clamp to 100%
+
+        # Real-world seconds elapsed since start
+        timePassed = time.time() - startWallTime
+        
+        # Only compute if fraction > 0
+        if fraction > 0:
+            # The total time is roughly time_passed / fraction
+            # so the remaining time is that minus time_passed
+            time_left_est = timePassed * (1 - fraction) / fraction
+        else:
+            time_left_est = 0.0
+
+        # Convert to mm:ss
+        minutes = int(time_left_est // 60)
+        seconds = int(time_left_est % 60)
+
+        estTimeString = ""
+        if minutes == 0 and seconds <= 5:
+            estTimeString = f"{fraction*100:.1f}% | a few seconds left..."
+        else:
+            estTimeString = f"{fraction*100:.1f}% | ~{minutes}m {seconds}s left..."
+
+        # Print one line, overwriting itself
+        print(
+            f"\rSimulation {currentRep+1}/{repetitions} progress: {estTimeString}",
+            end="",
+            flush=True
+        )
+
+        if fraction >= 1.0:
             break
-        yield env.timeout(1) 
+
+        yield env.timeout(conf.ONE_MIN_INTERVAL)
 
 # Add your router types here
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
