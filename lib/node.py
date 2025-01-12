@@ -55,6 +55,7 @@ class MeshNode():
         self.coverageKnowledge = set()
         self.lastHeardTime = {}
         self.isMoving = False
+        self.gpsEnabled = False
         # Track last broadcast position/time
         self.lastBroadcastX = self.x
         self.lastBroadcastY = self.y
@@ -73,6 +74,8 @@ class MeshNode():
         # start mobility if enabled
         if conf.MOVEMENT_ENABLED and random.random() <= conf.APPROX_RATIO_NODES_MOVING:
             self.isMoving = True
+            if random.random() <= conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
+                self.gpsEnabled = True
 
             # Randomly assign a movement speed
             possibleSpeeds = [
@@ -150,19 +153,20 @@ class MeshNode():
             self.x = new_x
             self.y = new_y
 
-            distanceTraveled = calcDist(self.lastBroadcastX, self.x, self.lastBroadcastY, self.y)
-            timeElapsed = env.now - self.lastBroadcastTime
-            if (distanceTraveled >= conf.SMART_POSITION_DISTANCE_THRESHOLD and
-                timeElapsed >= conf.SMART_POSITION_DISTANCE_MIN_TIME):
+            if self.gpsEnabled:
+                distanceTraveled = calcDist(self.lastBroadcastX, self.x, self.lastBroadcastY, self.y)
+                timeElapsed = env.now - self.lastBroadcastTime
+                if (distanceTraveled >= conf.SMART_POSITION_DISTANCE_THRESHOLD and
+                    timeElapsed >= conf.SMART_POSITION_DISTANCE_MIN_TIME):
 
-                currentUtil = self.channelUtilizationPercent()
-                if currentUtil < 25.0:
-                    self.sendPacket(NODENUM_BROADCAST, "POSITION")
-                    self.lastBroadcastX = self.x
-                    self.lastBroadcastY = self.y
-                    self.lastBroadcastTime = env.now
-                else:
-                    self.verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25%)")
+                    currentUtil = self.channelUtilizationPercent()
+                    if currentUtil < 25.0:
+                        self.sendPacket(NODENUM_BROADCAST, "POSITION")
+                        self.lastBroadcastX = self.x
+                        self.lastBroadcastY = self.y
+                        self.lastBroadcastTime = env.now
+                    else:
+                        self.verboseprint(f"At time {env.now} node {self.nodeid} SKIPS POSITION broadcast (util={currentUtil:.1f}% > 25%)")
 
             
             # Wait until next move
