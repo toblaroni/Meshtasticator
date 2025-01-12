@@ -134,14 +134,10 @@ def updateRouterDependencies():
 
     # Overwrite hop limit in the case of Bloom routing
     if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
-        hopLimit = BLOOM_HOPS
-        HEADERLENGTH = 32
-
-    if SELECTED_ROUTER_TYPE == ROUTER_TYPE.BLOOM:
         if NR_NODES <= SMALL_MESH_NUM_NODES:
             hopLimit = 3
             HEADERLENGTH = 16
-            print("\n`Small Mesh` detected, reverting to 3 hops")
+            print("\n`Small Mesh` detected, reverting to 3 hops, 16-byte header")
             return
         else:
             hopLimit = BLOOM_HOPS
