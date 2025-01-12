@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import collections
 import time
 import matplotlib
 
@@ -32,49 +33,62 @@ else:
 ###########################################################
 # Progress-logging process
 ###########################################################
-def simulationProgress(env, currentRep, repetitions, endTime):
+def simulationProgress(env, currentRep, repetitions, end_time):
     """
-    Periodically prints how far along we are in sim-time vs. end_time,
-    plus an estimate of real-world time remaining, using a fraction-based approach.
+    Keep track of the ratio of real time per sim-second over
+    a fixed sliding window, so if the simulation slows down near the end,
+    the time-left estimate adapts quickly.
     """
-    startWallTime = time.time()
-
+    start_wall_time = time.time()
+    last_wall_time = start_wall_time
+    last_env_time = env.now
+    
+    # We'll store the last N ratio measurements
+    N = 10
+    ratios = collections.deque(maxlen=N)
+    
     while True:
-        fraction = env.now / endTime
-        if fraction >= 1.0:
-            fraction = 1.0  # clamp to 100%
-
-        # Real-world seconds elapsed since start
-        timePassed = time.time() - startWallTime
+        fraction = env.now / end_time
+        fraction = min(fraction, 1.0)
         
-        # Only compute if fraction > 0
-        if fraction > 0:
-            # The total time is roughly time_passed / fraction
-            # so the remaining time is that minus time_passed
-            time_left_est = timePassed * (1 - fraction) / fraction
+        # Current real time
+        current_wall_time = time.time()
+        real_time_delta = current_wall_time - last_wall_time
+        sim_time_delta = env.now - last_env_time
+        
+        # Compute new ratio if sim actually advanced
+        if sim_time_delta > 0:
+            instant_ratio = real_time_delta / sim_time_delta
+            ratios.append(instant_ratio)
+        
+        # If we have at least one ratio, compute a 'recent average'
+        if len(ratios) > 0:
+            avg_ratio = sum(ratios) / len(ratios)
         else:
-            time_left_est = 0.0
-
-        # Convert to mm:ss
+            avg_ratio = 0.0
+        
+        # time_left_est = avg_ratio * (end_time - env.now)
+        sim_time_remaining = end_time - env.now
+        time_left_est = sim_time_remaining * avg_ratio
+        
+        # Format mm:ss
         minutes = int(time_left_est // 60)
         seconds = int(time_left_est % 60)
-
-        estTimeString = ""
-        if minutes == 0 and seconds <= 5:
-            estTimeString = f"{fraction*100:.1f}% | a few seconds left..."
-        else:
-            estTimeString = f"{fraction*100:.1f}% | ~{minutes}m {seconds}s left..."
-
-        # Print one line, overwriting itself
+        
         print(
-            f"\rSimulation {currentRep+1}/{repetitions} progress: {estTimeString}",
-            end="",
-            flush=True
+            f"\rSimulation {currentRep+1}/{repetitions} progress: "
+            f"{fraction*100:.1f}% | ~{minutes}m{seconds}s left...",
+            end="", flush=True
         )
-
+        
+        # If done or overshoot
         if fraction >= 1.0:
             break
-
+        
+        # Update references
+        last_wall_time = current_wall_time
+        last_env_time = env.now
+        
         yield env.timeout(conf.ONE_MIN_INTERVAL)
 
 # Add your router types here
