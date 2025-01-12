@@ -208,6 +208,7 @@ def findRandomPosition(nodes):
 	foundMin = True
 	foundMax = False
 	tries = 0
+	x, y = 0
 	while not (foundMin and foundMax):
 		a = random.random()
 		b = random.random()

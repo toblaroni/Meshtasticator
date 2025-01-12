@@ -92,7 +92,7 @@ BLOOM_HOPS = 15
 
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
-COVERAGE_RATIO_SCALE_FACTOR = 2
+COVERAGE_RATIO_SCALE_FACTOR = 1
 
 # Set this to non-zero value to make it possible that a 
 # node without any additional coverage may still rebroadcast

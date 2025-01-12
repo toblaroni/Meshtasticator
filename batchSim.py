@@ -89,13 +89,13 @@ def simulationProgress(env, currentRep, repetitions, endTime):
         lastWallTime = currentWallTime
         lastEnvTime = env.now
         
-        yield env.timeout(conf.ONE_MIN_INTERVAL)
+        yield env.timeout(10 * conf.ONE_SECOND_INTERVAL)
 
 # Add your router types here
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
 
-repetitions = 3
-numberOfNodes = [3, 15, 25, 30, 40, 50, 80, 100, 150, 200]
+repetitions = 5
+numberOfNodes = [50, 80, 100, 150]
 
 # We will collect the metrics in dictionaries keyed by router type.
 # For example: collisions_dict[ routerType ] = [list of mean collisions, one per nrNodes]
