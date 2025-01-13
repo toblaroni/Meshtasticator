@@ -120,6 +120,8 @@ if conf.MODEL_ASYMMETRIC_LINKS == True:
 if conf.MOVEMENT_ENABLED == True:
 	movingNodes = sum([1 for n in nodes if n.isMoving == True])
 	print("Number of moving nodes:", movingNodes)
+	gpsEnabled = sum([1 for n in nodes if n.gpsEnabled == True])
+	print("Number of moving nodes w/ GPS:", gpsEnabled)
 
 graph.save()
 
