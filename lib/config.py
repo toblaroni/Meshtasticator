@@ -78,6 +78,8 @@ class ROUTER_TYPE(Enum):
 ######################################
 ####### SET ROUTER TYPE BELOW ########
 ######################################
+# This can also be overwritten by scenarios defined in batchSim.py 
+# or by passing this as the second command line param to loraMesh.py
 
 SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
 
@@ -85,27 +87,39 @@ SELECTED_ROUTER_TYPE = ROUTER_TYPE.MANAGED_FLOOD
 ####### SET ROUTER TYPE ABOVE ########
 ######################################
 
+##################################################
+####### BLOOM ROUTER SIMULATION VARIABLES ########
+##################################################
+
 # Shrink this down to accomodate a 4 byte node id for relay_node
+# relay_node takes 4 bytes (prev 1 byte), so the expanded header
+# can only fit 16 - 3 = 13 bytes for the bloom filter
 BLOOM_FILTER_SIZE_BYTES = 13
 BLOOM_FILTER_SIZE_BITS = BLOOM_FILTER_SIZE_BYTES * 8
+# When bloom router is enabled, this is how many hops will be used
 BLOOM_HOPS = 15
-
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
 COVERAGE_RATIO_SCALE_FACTOR = 1
-
-# Set this to non-zero value to make it possible that a 
-# node without any additional coverage may still rebroadcast
+# The absolute minimum rebroadcast probability under any circumstances
 BASELINE_REBROADCAST_PROBABILITY = 0.0
+# This is probabiliy of rebroadcast if we have 0 known neighbors (high uncertainty)
 UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 0.8
+# The bloom router performs poorly with small, volatile networks
+# this is the threshold under which we disable the bloom router and reset hops to 3
 SMALL_MESH_NUM_NODES = 30
-
-SHOW_PROBABILITY_FUNCTION_COMPARISON = False
-
+# Maximum number of immediate neighbors that can be added per hop
 MAX_NEIGHBORS_PER_HOP = 20
-
+# Convenience illustration of the probability functions we could use
+# This has no bearing on the simulation itself
+SHOW_PROBABILITY_FUNCTION_COMPARISON = False
+# How long does an immediate neighbor remain in our coverage knowledge before aging out
 # If SIMTIME is less than this, nodes will never fully age out of coverage
 RECENCY_THRESHOLD = 1 * ONE_HR_INTERVAL
+
+#####################################################
+####### ASYMMETRIC LINK SIMULATION VARIABLES ########
+#####################################################
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
@@ -116,20 +130,25 @@ MODEL_ASYMMETRIC_LINKS_STDDEV = 4
 # Populated when the simulator first starts
 LINK_OFFSET = {}
 
+#################################################
+####### MOVING NODE SIMULATION VARIABLES ########
+#################################################
+
 MOVEMENT_ENABLED = True
 WALKING_METERS_PER_MIN = 96
 BIKING_METERS_PER_MIN = 390
 DRIVING_METERS_PER_MIN = 1500
-
-SMART_POSITION_DISTANCE_THRESHOLD = 100
-# 30s minimum time in firmware
-SMART_POSITION_DISTANCE_MIN_TIME = 30 * ONE_SECOND_INTERVAL
-
 APPROX_RATIO_NODES_MOVING = 0.4
 APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.5
 
+# 100 meters
+SMART_POSITION_DISTANCE_THRESHOLD = 100
+# 30s minimum time in firmware
+SMART_POSITION_DISTANCE_MIN_TIME = 30 * ONE_SECOND_INTERVAL
+# This mirrors the firmware's approach to monitoring channel utilization
 CHANNEL_UTILIZATION_PERIODS = 6
 
+# Function that needs to be run to ensure the router dependent variables change appropriately
 def updateRouterDependencies():
     global hopLimit, HEADERLENGTH
 
