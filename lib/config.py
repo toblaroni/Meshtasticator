@@ -135,10 +135,15 @@ LINK_OFFSET = {}
 #################################################
 
 MOVEMENT_ENABLED = True
+# The average number of meters a human walks in a minute
 WALKING_METERS_PER_MIN = 96
+# The average number of meters a human bikes in a minute
 BIKING_METERS_PER_MIN = 390
+# The average number of meters a human drives in a minute
 DRIVING_METERS_PER_MIN = 1500
+# The % of nodes that end up mobile in the simulation 0.4 = ~40%
 APPROX_RATIO_NODES_MOVING = 0.4
+# The % of mobile nodes that have GPS enabled 0.5 = 50%
 APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.5
 
 # 100 meters
