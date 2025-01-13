@@ -92,9 +92,9 @@ def simulationProgress(env, currentRep, repetitions, endTime):
         yield env.timeout(10 * conf.ONE_SECOND_INTERVAL)
 
 # Add your router types here
-routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
+routerTypes = [conf.ROUTER_TYPE.BLOOM, conf.ROUTER_TYPE.MANAGED_FLOOD]
 
-repetitions = 5
+repetitions = 3
 numberOfNodes = [50, 80, 100, 150]
 
 # We will collect the metrics in dictionaries keyed by router type.

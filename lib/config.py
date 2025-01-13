@@ -8,7 +8,7 @@ XSIZE = 15000  # horizontal size of the area to simulate in m
 YSIZE = 15000  # vertical size of the area to simulate in m
 OX = 0.0  # origin x-coordinate
 OY = 0.0  # origin y-coordinate
-MINDIST = 15  # minimum distance between each node in the area in m
+MINDIST = 10  # minimum distance between each node in the area in m
 
 GL = 0  # antenna gain of each node in dBi
 HM = 1.0  # height of each node in m
@@ -100,11 +100,11 @@ BLOOM_FILTER_SIZE_BITS = BLOOM_FILTER_SIZE_BYTES * 8
 BLOOM_HOPS = 15
 # This will scale up the impact of the coverage 
 # ratio on probability of rebroadcast
-COVERAGE_RATIO_SCALE_FACTOR = 1
+COVERAGE_RATIO_SCALE_FACTOR = 3.5
 # The absolute minimum rebroadcast probability under any circumstances
-BASELINE_REBROADCAST_PROBABILITY = 0.0
+BASELINE_REBROADCAST_PROBABILITY = 0.2
 # This is probabiliy of rebroadcast if we have 0 known neighbors (high uncertainty)
-UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 0.8
+UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
 # The bloom router performs poorly with small, volatile networks
 # this is the threshold under which we disable the bloom router and reset hops to 3
 SMALL_MESH_NUM_NODES = 30
@@ -123,9 +123,9 @@ RECENCY_THRESHOLD = 1 * ONE_HR_INTERVAL
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
-MODEL_ASYMMETRIC_LINKS = True
+MODEL_ASYMMETRIC_LINKS = False
 MODEL_ASYMMETRIC_LINKS_MEAN = 0
-MODEL_ASYMMETRIC_LINKS_STDDEV = 4
+MODEL_ASYMMETRIC_LINKS_STDDEV = 3
 # Stores the offset for each link
 # Populated when the simulator first starts
 LINK_OFFSET = {}
@@ -134,7 +134,7 @@ LINK_OFFSET = {}
 ####### MOVING NODE SIMULATION VARIABLES ########
 #################################################
 
-MOVEMENT_ENABLED = True
+MOVEMENT_ENABLED = False
 # The average number of meters a human walks in a minute
 WALKING_METERS_PER_MIN = 96
 # The average number of meters a human bikes in a minute
@@ -142,9 +142,9 @@ BIKING_METERS_PER_MIN = 390
 # The average number of meters a human drives in a minute
 DRIVING_METERS_PER_MIN = 1500
 # The % of nodes that end up mobile in the simulation 0.4 = ~40%
-APPROX_RATIO_NODES_MOVING = 0.4
+APPROX_RATIO_NODES_MOVING = 0.2
 # The % of mobile nodes that have GPS enabled 0.5 = 50%
-APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.5
+APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.2
 
 # 100 meters
 SMART_POSITION_DISTANCE_THRESHOLD = 100
