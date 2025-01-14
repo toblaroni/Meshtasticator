@@ -439,6 +439,7 @@ class Graph():
 		plt.savefig(os.path.join("out", "graphics", "placement_"+str(conf.NR_NODES)))
 
 def setupAsymmetricLinks(nodes):
+	asymLinkRng = random.Random(conf.SEED)
 	totalPairs = 0
 	symmetricLinks = 0
 	asymmetricLinks = 0
@@ -447,7 +448,7 @@ def setupAsymmetricLinks(nodes):
 		for b in range(conf.NR_NODES):
 			if i != b:
 				if conf.MODEL_ASYMMETRIC_LINKS:
-					conf.LINK_OFFSET[(i,b)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
+					conf.LINK_OFFSET[(i,b)] = asymLinkRng.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
 				else:
 					conf.LINK_OFFSET[(i,b)] = 0
 

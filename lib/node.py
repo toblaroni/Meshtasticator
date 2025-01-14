@@ -13,6 +13,7 @@ class MeshNode():
         self.nodeid = nodeid
         self.verboseprint = verboseprint
         self.moveRng = random.Random(nodeid)
+        self.nodeRng = random.Random(nodeid)
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
             self.y = nodeConfig['y']
@@ -189,7 +190,7 @@ class MeshNode():
         return p
 
     def getNextTime(self, period):
-        nextGen = random.expovariate(1.0/float(period))
+        nextGen = self.nodeRng.expovariate(1.0/float(period))
         # do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
         if self.env.now+nextGen+self.hopLimit*airtime(conf.SFMODEM[conf.MODEM], conf.CRMODEM[conf.MODEM], conf.PACKETLENGTH, conf.BWMODEM[conf.MODEM]) < conf.SIMTIME:
             return nextGen
@@ -204,7 +205,7 @@ class MeshNode():
                 yield self.env.timeout(nextGen) 
 
                 if conf.DMs:
-                    destId = random.choice([i for i in range(0, len(self.nodes)) if i is not self.nodeid])
+                    destId = self.nodeRng.choice([i for i in range(0, len(self.nodes)) if i is not self.nodeid])
                 else:
                     destId = NODENUM_BROADCAST
 
@@ -369,7 +370,7 @@ class MeshNode():
 
                         rebroadcastProbability = pNew.getRebroadcastProbability()
 
-                        rebroadcastProbabilityTest = random.random()
+                        rebroadcastProbabilityTest = self.rebroadcastRng.random()
 
                         # Check the random against the probability
                         if rebroadcastProbabilityTest <= rebroadcastProbability:
