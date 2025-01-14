@@ -211,9 +211,6 @@ for rt_i, routerType in enumerate(routerTypes):
 
     # Inner loop for each nrNodes
     for p, nrNodes in enumerate(numberOfNodes):
-        routerTypeConf = Config()
-        routerTypeConf.NR_NODES = nrNodes
-        routerTypeConf.updateRouterDependencies()
 
         nodeReach = [0 for _ in range(repetitions)]
         nodeUsefulness = [0 for _ in range(repetitions)]
@@ -229,6 +226,12 @@ for rt_i, routerType in enumerate(routerTypes):
         print(f"\n[Router: {routerTypeLabel}] Start of {p+1} out of {len(numberOfNodes)} - {nrNodes} nodes")
 
         for rep in range(repetitions):
+            # For the highest degree of separation between runs, config
+            # should be instantiated every repetition for this router type and node number
+            routerTypeConf = Config()
+            routerTypeConf.NR_NODES = nrNodes
+            routerTypeConf.updateRouterDependencies()
+
             effectiveSeed = rt_i * 10000 + rep
             routerTypeConf.SEED = effectiveSeed
             random.seed(effectiveSeed)
