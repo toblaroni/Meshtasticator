@@ -18,13 +18,6 @@ else:
 	def verboseprint(*args, **kwargs): 
 		pass
 
-def runGraphUpdates(env, graph, nodes, interval=conf.ONE_MIN_INTERVAL/2):
-    while True:
-        # Wait 'interval' sim-mseconds
-        yield env.timeout(interval)
-        # Now update the positions in the graph
-        graph.updatePositions(nodes)
-
 nodeConfig = getParams(sys.argv)
 env = simpy.Environment()
 bc_pipe = BroadcastPipe(env)

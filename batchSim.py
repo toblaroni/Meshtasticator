@@ -21,6 +21,7 @@ from lib.discrete_event import *
 from lib.node import *
 
 VERBOSE = False
+SHOW_GRAPH = False
 SAVE = True
 
 if VERBOSE:
@@ -139,6 +140,46 @@ for rt in routerTypes:
     symmetricLinkRate_dict[rt] = []
     noLinkRate_dict[rt] = []
 
+
+
+##############################################################################
+# Pre generate node positions so we have apples to apples between router types
+##############################################################################
+class TempNode:
+    """A lightweight node-like object with .x and .y attributes."""
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+positions_cache = {}  # (nrNodes, rep) -> list of (x, y)
+
+for nrNodes in numberOfNodes:
+    for rep in range(repetitions):
+        random.seed(rep)
+        found = False
+        temp_nodes = []
+        
+        # We attempt to place 'nrNodes' one by one using findRandomPosition,
+        # but pass in a list of TempNode objects so it can do n.x, n.y
+        while not found:
+            temp_nodes = []
+            for _ in range(nrNodes):
+                xnew, ynew = findRandomPosition(temp_nodes)
+                if xnew is None:
+                    # means we failed to place a node
+                    break
+                # Wrap coordinates in a TempNode
+                temp_nodes.append(TempNode(xnew, ynew))
+            
+            if len(temp_nodes) == nrNodes:
+                found = True
+            else:
+                pass
+
+        # Convert the final TempNodes to (x, y) tuples
+        coords = [(tn.x, tn.y) for tn in temp_nodes]
+        positions_cache[(nrNodes, rep)] = coords
+
 ###########################################################
 # Main simulation loops
 ###########################################################
@@ -194,6 +235,9 @@ for rt_i, routerType in enumerate(routerTypes):
             # Start the progress-logging process
             env.process(simulationProgress(env, rep, repetitions, conf.SIMTIME))
 
+            # Retrieve the pre-generated positions for this (nrNodes, rep)
+            coords = positions_cache[(nrNodes, rep)]
+
             nodes = []
             messages = []
             packets = []
@@ -201,20 +245,34 @@ for rt_i, routerType in enumerate(routerTypes):
             packetsAtN = [[] for _ in range(conf.NR_NODES)]
             messageSeq = {"val": 0}
 
-            found = False
-            while not found:
-                nodes = []
-                for nodeId in range(conf.NR_NODES):
-                    node = MeshNode(
-                        nodes, env, bc_pipe, nodeId, conf.PERIOD,
-                        messages, packetsAtN, packets, delays, None,
-                        messageSeq, verboseprint
-                    )
-                    if node.x is None:
-                        break
-                    nodes.append(node)
-                if len(nodes) == conf.NR_NODES:
-                    found = True
+            if SHOW_GRAPH:
+                graph = Graph()
+            for nodeId in range(conf.NR_NODES):
+                x, y = coords[nodeId]
+
+                # We create a nodeConfig dict so that MeshNode will use that
+                nodeConfig = {
+                    'x': x,
+                    'y': y,
+                    'z': conf.HM,
+                    'isRouter': False,
+                    'isRepeater': False,
+                    'isClientMute': False,
+                    'hopLimit': conf.hopLimit,
+                    'antennaGain': conf.GL
+                }
+
+                node = MeshNode(
+                    nodes, env, bc_pipe, nodeId, conf.PERIOD,
+                    messages, packetsAtN, packets, delays, nodeConfig,
+                    messageSeq, verboseprint
+                )
+                nodes.append(node)
+                if SHOW_GRAPH:
+                    graph.addNode(node)
+
+            if conf.MOVEMENT_ENABLED and SHOW_GRAPH:
+                env.process(runGraphUpdates(env, graph, nodes))
 
             totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(nodes)
 

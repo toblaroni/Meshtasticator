@@ -12,6 +12,7 @@ class MeshNode():
     def __init__(self, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint):
         self.nodeid = nodeid
         self.verboseprint = verboseprint
+        self.moveRng = random.Random(nodeid)
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
             self.y = nodeConfig['y']
@@ -72,9 +73,9 @@ class MeshNode():
         self.transmitter = simpy.Resource(env, 1)
 
         # start mobility if enabled
-        if conf.MOVEMENT_ENABLED and random.random() <= conf.APPROX_RATIO_NODES_MOVING:
+        if conf.MOVEMENT_ENABLED and self.moveRng.random() <= conf.APPROX_RATIO_NODES_MOVING:
             self.isMoving = True
-            if random.random() <= conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
+            if self.moveRng.random() <= conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
                 self.gpsEnabled = True
 
             # Randomly assign a movement speed
@@ -83,7 +84,7 @@ class MeshNode():
                 conf.BIKING_METERS_PER_MIN,   # e.g., 390 m/min
                 conf.DRIVING_METERS_PER_MIN   # e.g., 1500 m/min
             ]
-            self.movementStepSize = random.choice(possibleSpeeds)
+            self.movementStepSize = self.moveRng.choice(possibleSpeeds)
 
             env.process(self.moveNode(env))
 
@@ -133,8 +134,8 @@ class MeshNode():
         while True:
 
             # Pick a random direction and distance
-            angle = 2 * math.pi * random.random()
-            distance = self.movementStepSize * random.random()
+            angle = 2 * math.pi * self.moveRng.random()
+            distance = self.movementStepSize * self.moveRng.random()
             
             # Compute new position
             dx = distance * math.cos(angle)

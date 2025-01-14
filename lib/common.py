@@ -240,6 +240,12 @@ def findRandomPosition(nodes):
 			break
 	return max(-conf.XSIZE/2, x),max(-conf.YSIZE/2, y)
 
+def runGraphUpdates(env, graph, nodes, interval=conf.ONE_MIN_INTERVAL/2):
+    while True:
+        # Wait 'interval' sim-mseconds
+        yield env.timeout(interval)
+        # Now update the positions in the graph
+        graph.updatePositions(nodes)
 
 def calcDist(x0, x1, y0, y1, z0=0, z1=0): 
 	return np.sqrt(((abs(x0-x1))**2)+((abs(y0-y1))**2)+((abs(z0-z1)**2)))
