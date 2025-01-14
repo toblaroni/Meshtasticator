@@ -228,6 +228,7 @@ for rt_i, routerType in enumerate(routerTypes):
         for rep in range(repetitions):
             effectiveSeed = rt_i * 10000 + rep
             setBatch(rep)
+            conf.SEED = effectiveSeed
             random.seed(effectiveSeed)
             env = simpy.Environment()
             bc_pipe = BroadcastPipe(env)

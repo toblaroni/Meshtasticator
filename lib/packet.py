@@ -2,10 +2,7 @@ from lib.common import calcDist
 from lib.coverageFilter import CoverageFilter
 from .phy import *
 
-
 NODENUM_BROADCAST = 0xFFFFFFFF
-random.seed(conf.SEED)
-
 
 class MeshPacket(): 
 	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, verboseprint, coverageFilter = None, prevNodesInCovFilter = 0):
