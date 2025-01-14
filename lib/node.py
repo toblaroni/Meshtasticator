@@ -14,6 +14,7 @@ class MeshNode():
         self.verboseprint = verboseprint
         self.moveRng = random.Random(nodeid)
         self.nodeRng = random.Random(nodeid)
+        self.rebroadcastRng = random.Random(nodeid)
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
             self.y = nodeConfig['y']
