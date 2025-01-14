@@ -123,7 +123,7 @@ RECENCY_THRESHOLD = 1 * ONE_HR_INTERVAL
 
 # Set this to True to enable the asymmetric link model
 # Adds a random offset to the link quality of each link
-MODEL_ASYMMETRIC_LINKS = False
+MODEL_ASYMMETRIC_LINKS = True
 MODEL_ASYMMETRIC_LINKS_MEAN = 0
 MODEL_ASYMMETRIC_LINKS_STDDEV = 3
 # Stores the offset for each link
@@ -134,7 +134,7 @@ LINK_OFFSET = {}
 ####### MOVING NODE SIMULATION VARIABLES ########
 #################################################
 
-MOVEMENT_ENABLED = False
+MOVEMENT_ENABLED = True
 # The average number of meters a human walks in a minute
 WALKING_METERS_PER_MIN = 96
 # The average number of meters a human bikes in a minute
@@ -142,9 +142,9 @@ BIKING_METERS_PER_MIN = 390
 # The average number of meters a human drives in a minute
 DRIVING_METERS_PER_MIN = 1500
 # The % of nodes that end up mobile in the simulation 0.4 = ~40%
-APPROX_RATIO_NODES_MOVING = 0.2
+APPROX_RATIO_NODES_MOVING = 0.4
 # The % of mobile nodes that have GPS enabled 0.5 = 50%
-APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.2
+APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.3
 
 # 100 meters
 SMART_POSITION_DISTANCE_THRESHOLD = 100
