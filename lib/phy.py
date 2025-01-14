@@ -6,7 +6,6 @@ from scipy.optimize import fsolve
 from . import config as conf
 
 VERBOSE = False
-random.seed(conf.SEED)
 #                           CAD duration   +     airPropagationTime+TxRxTurnaround+MACprocessing
 slotTime = 8.5 * (2.0**conf.SFMODEM[conf.MODEM])/conf.BWMODEM[conf.MODEM]*1000 + 0.2 + 0.4 + 7
 
