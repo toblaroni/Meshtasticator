@@ -1,6 +1,4 @@
 import random
-
-from . import config as conf
 from .phy import airtime, slotTime
 
 
@@ -19,7 +17,7 @@ def setTransmitDelay(node, packet):  # from RadioLibInterface::setTransmitDelay
 
 
 def getTxDelayMsecWeighted(node, rssi):  # from RadioInterface::getTxDelayMsecWeighted
-    snr = rssi-conf.NOISE_LEVEL
+    snr = rssi-node.conf.NOISE_LEVEL
     SNR_MIN = -20
     SNR_MAX = 15
     if snr < SNR_MIN:
@@ -47,7 +45,7 @@ def getTxDelayMsec(node):  # from RadioInterface::getTxDelayMsec
 
 
 def getRetransmissionMsec(node, packet):  # from RadioInterface::getRetransmissionMsec
-    packetAirtime = int(airtime(conf.SFMODEM[conf.MODEM], conf.CRMODEM[conf.MODEM], packet.packetLen, conf.BWMODEM[conf.MODEM]))
+    packetAirtime = int(airtime(node.conf, node.conf.SFMODEM[node.conf.MODEM], node.conf.CRMODEM[node.conf.MODEM], packet.packetLen, node.conf.BWMODEM[node.conf.MODEM]))
     channelUtil = node.airUtilization/node.env.now*100 
     CWsize = int(channelUtil*(CWmax - CWmin)/100 + CWmin)
     return 2*packetAirtime + (2**CWsize + 2**(int((CWmax+CWmin)/2))) * slotTime + PROCESSING_TIME_MSEC;

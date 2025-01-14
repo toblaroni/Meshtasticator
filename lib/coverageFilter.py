@@ -1,9 +1,8 @@
-from . import config as conf
-
 class CoverageFilter:
-    def __init__(self):
+    def __init__(self, conf):
         # Similar to std::array<uint8_t, BLOOM_FILTER_SIZE_BYTES> filled with 0
-        self.bits_ = bytearray(conf.BLOOM_FILTER_SIZE_BYTES)
+        self.conf = conf
+        self.bits_ = bytearray(self.conf.BLOOM_FILTER_SIZE_BYTES)
 
     def add(self, item: int) -> None:
         """Add an item to the Bloom filter."""
@@ -31,12 +30,12 @@ class CoverageFilter:
 
     def merge(self, other: "CoverageFilter") -> None:
         """Merge another CoverageFilter into this one (bitwise OR)."""
-        for i in range(conf.BLOOM_FILTER_SIZE_BYTES):
+        for i in range(self.conf.BLOOM_FILTER_SIZE_BYTES):
             self.bits_[i] |= other.bits_[i]
 
     def clear(self) -> None:
         """Clear all bits."""
-        for i in range(conf.BLOOM_FILTER_SIZE_BYTES):
+        for i in range(self.conf.BLOOM_FILTER_SIZE_BYTES):
             self.bits_[i] = 0
 
     def __str__(self) -> str:
@@ -49,7 +48,7 @@ class CoverageFilter:
 
     def _set_bit(self, index: int) -> None:
         """Set the bit at a specific index."""
-        if index >= conf.BLOOM_FILTER_SIZE_BITS:
+        if index >= self.conf.BLOOM_FILTER_SIZE_BITS:
             return  # Out-of-range check
         byte_index = index // 8
         bit_mask = 1 << (index % 8)
@@ -57,7 +56,7 @@ class CoverageFilter:
 
     def _test_bit(self, index: int) -> bool:
         """Test (check) the bit at a specific index."""
-        if index >= conf.BLOOM_FILTER_SIZE_BITS:
+        if index >= self.conf.BLOOM_FILTER_SIZE_BITS:
             return False
         byte_index = index // 8
         bit_mask = 1 << (index % 8)
@@ -73,7 +72,7 @@ class CoverageFilter:
         combined = value ^ (seed1 + (value << 6) + (value >> 2))
         # Python's hash can be negative; mask to 64-bit to mimic unsigned behavior
         hash_out = hash(combined) & ((1 << 64) - 1)
-        return hash_out % conf.BLOOM_FILTER_SIZE_BITS
+        return hash_out % self.conf.BLOOM_FILTER_SIZE_BITS
 
     def hash2(self, value: int) -> int:
         """
@@ -84,4 +83,4 @@ class CoverageFilter:
         combined = value ^ (seed2 + (value << 5) + (value >> 3))
         # Python's hash can be negative; mask to 64-bit
         hash_out = hash(combined) & ((1 << 64) - 1)
-        return hash_out % conf.BLOOM_FILTER_SIZE_BITS
+        return hash_out % self.conf.BLOOM_FILTER_SIZE_BITS

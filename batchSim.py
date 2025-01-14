@@ -14,12 +14,16 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
+from lib.config import Config
 from lib.common import *
 from lib.packet import *
 from lib.mac import *
 from lib.discrete_event import *
 from lib.node import *
 
+# TODO - There should really be two separate concepts here, a STATE and a CONFIG
+# today, the config also maintains state
+conf = Config()
 VERBOSE = False
 SHOW_GRAPH = False
 SAVE = True
@@ -96,7 +100,7 @@ def simulationProgress(env, currentRep, repetitions, endTime):
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
 
 repetitions = 3
-numberOfNodes = [50, 80]
+numberOfNodes = [50, 75, 100, 200]
 
 # We will collect the metrics in dictionaries keyed by router type.
 # For example: collisions_dict[ routerType ] = [list of mean collisions, one per nrNodes]
@@ -164,7 +168,7 @@ for nrNodes in numberOfNodes:
         while not found:
             temp_nodes = []
             for _ in range(nrNodes):
-                xnew, ynew = findRandomPosition(temp_nodes)
+                xnew, ynew = findRandomPosition(conf, temp_nodes)
                 if xnew is None:
                     # means we failed to place a node
                     break
@@ -186,7 +190,6 @@ for nrNodes in numberOfNodes:
 
 # Outer loop for each router type
 for rt_i, routerType in enumerate(routerTypes):
-    conf.SELECTED_ROUTER_TYPE = routerType
     routerTypeLabel = str(routerType)
 
     # Prepare arrays for the final plot data, one per metric
@@ -208,9 +211,9 @@ for rt_i, routerType in enumerate(routerTypes):
 
     # Inner loop for each nrNodes
     for p, nrNodes in enumerate(numberOfNodes):
-            
-        conf.NR_NODES = nrNodes
-        conf.updateRouterDependencies()
+        routerTypeConf = Config()
+        routerTypeConf.NR_NODES = nrNodes
+        routerTypeConf.updateRouterDependencies()
 
         nodeReach = [0 for _ in range(repetitions)]
         nodeUsefulness = [0 for _ in range(repetitions)]
@@ -227,14 +230,13 @@ for rt_i, routerType in enumerate(routerTypes):
 
         for rep in range(repetitions):
             effectiveSeed = rt_i * 10000 + rep
-            setBatch(rep)
-            conf.SEED = effectiveSeed
+            routerTypeConf.SEED = effectiveSeed
             random.seed(effectiveSeed)
             env = simpy.Environment()
             bc_pipe = BroadcastPipe(env)
 
             # Start the progress-logging process
-            env.process(simulationProgress(env, rep, repetitions, conf.SIMTIME))
+            env.process(simulationProgress(env, rep, repetitions, routerTypeConf.SIMTIME))
 
             # Retrieve the pre-generated positions for this (nrNodes, rep)
             coords = positions_cache[(nrNodes, rep)]
@@ -243,28 +245,28 @@ for rt_i, routerType in enumerate(routerTypes):
             messages = []
             packets = []
             delays = []
-            packetsAtN = [[] for _ in range(conf.NR_NODES)]
+            packetsAtN = [[] for _ in range(routerTypeConf.NR_NODES)]
             messageSeq = {"val": 0}
 
             if SHOW_GRAPH:
-                graph = Graph()
-            for nodeId in range(conf.NR_NODES):
+                graph = Graph(routerTypeConf)
+            for nodeId in range(routerTypeConf.NR_NODES):
                 x, y = coords[nodeId]
 
                 # We create a nodeConfig dict so that MeshNode will use that
                 nodeConfig = {
                     'x': x,
                     'y': y,
-                    'z': conf.HM,
+                    'z': routerTypeConf.HM,
                     'isRouter': False,
                     'isRepeater': False,
                     'isClientMute': False,
-                    'hopLimit': conf.hopLimit,
-                    'antennaGain': conf.GL
+                    'hopLimit': routerTypeConf.hopLimit,
+                    'antennaGain': routerTypeConf.GL
                 }
 
                 node = MeshNode(
-                    nodes, env, bc_pipe, nodeId, conf.PERIOD,
+                    routerTypeConf, nodes, env, bc_pipe, nodeId, routerTypeConf.PERIOD,
                     messages, packetsAtN, packets, delays, nodeConfig,
                     messageSeq, verboseprint
                 )
@@ -272,13 +274,13 @@ for rt_i, routerType in enumerate(routerTypes):
                 if SHOW_GRAPH:
                     graph.addNode(node)
 
-            if conf.MOVEMENT_ENABLED and SHOW_GRAPH:
+            if routerTypeConf.MOVEMENT_ENABLED and SHOW_GRAPH:
                 env.process(runGraphUpdates(env, graph, nodes))
 
-            totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(nodes)
+            totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(routerTypeConf, nodes)
 
             # Start simulation
-            env.run(until=conf.SIMTIME)
+            env.run(until=routerTypeConf.SIMTIME)
 
             # Calculate stats
             nrCollisions = sum([1 for pkt in packets for n in nodes if pkt.collidedAtN[n.nodeid]])
@@ -292,7 +294,7 @@ for rt_i, routerType in enumerate(routerTypes):
                 collisionRate[rep] = np.NaN
 
             if messageSeq["val"] != 0:
-                nodeReach[rep] = nrUseful / (messageSeq["val"] * (conf.NR_NODES - 1)) * 100
+                nodeReach[rep] = nrUseful / (messageSeq["val"] * (routerTypeConf.NR_NODES - 1)) * 100
             else:
                 nodeReach[rep] = np.NaN
 
@@ -302,11 +304,11 @@ for rt_i, routerType in enumerate(routerTypes):
                 nodeUsefulness[rep] = np.NaN
 
             meanDelay[rep] = np.nanmean(delays)
-            meanTxAirUtilization[rep] = sum([n.txAirUtilization for n in nodes]) / conf.NR_NODES
+            meanTxAirUtilization[rep] = sum([n.txAirUtilization for n in nodes]) / routerTypeConf.NR_NODES
 
             # Coverage is only meaningful for BLOOM
-            if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
-                potentialReceivers = len(packets) * (conf.NR_NODES - 1)
+            if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM:
+                potentialReceivers = len(packets) * (routerTypeConf.NR_NODES - 1)
                 if potentialReceivers > 0:
                     coverageFp[rep] = round(
                         sum([n.coverageFalsePositives for n in nodes]) / potentialReceivers * 100, 2
@@ -315,7 +317,7 @@ for rt_i, routerType in enumerate(routerTypes):
                         sum([n.coverageFalseNegatives for n in nodes]) / potentialReceivers * 100, 2
                     )
 
-            if conf.MODEL_ASYMMETRIC_LINKS:
+            if routerTypeConf.MODEL_ASYMMETRIC_LINKS:
                 asymmetricLinkRate[rep] = round(asymmetricLinks / totalPairs * 100, 2)
                 symmetricLinkRate[rep] = round(symmetricLinks / totalPairs * 100, 2)
                 noLinkRate[rep] = round(noLinks / totalPairs * 100, 2)
@@ -350,24 +352,24 @@ for rt_i, routerType in enumerate(routerTypes):
                 "nrSensed": nrSensed,
                 "nrReceived": nrReceived,
                 "usefulPackets": nrUseful,
-                "MODEM": conf.NR_NODES,
-                "MODEL": conf.MODEL,
-                "NR_NODES": conf.NR_NODES,
-                "INTERFERENCE_LEVEL": conf.INTERFERENCE_LEVEL,
-                "COLLISION_DUE_TO_INTERFERENCE": conf.COLLISION_DUE_TO_INTERFERENCE,
-                "XSIZE": conf.XSIZE,
-                "YSIZE": conf.YSIZE,
-                "MINDIST": conf.MINDIST,
-                "SIMTIME": conf.SIMTIME,
-                "PERIOD": conf.PERIOD,
-                "PACKETLENGTH": conf.PACKETLENGTH,
+                "MODEM": routerTypeConf.NR_NODES,
+                "MODEL": routerTypeConf.MODEL,
+                "NR_NODES": routerTypeConf.NR_NODES,
+                "INTERFERENCE_LEVEL": routerTypeConf.INTERFERENCE_LEVEL,
+                "COLLISION_DUE_TO_INTERFERENCE": routerTypeConf.COLLISION_DUE_TO_INTERFERENCE,
+                "XSIZE": routerTypeConf.XSIZE,
+                "YSIZE": routerTypeConf.YSIZE,
+                "MINDIST": routerTypeConf.MINDIST,
+                "SIMTIME": routerTypeConf.SIMTIME,
+                "PERIOD": routerTypeConf.PERIOD,
+                "PACKETLENGTH": routerTypeConf.PACKETLENGTH,
                 "nrMessages": messageSeq["val"],
                 "SELECTED_ROUTER_TYPE": routerTypeLabel
             }
             subdir = "hopLimit3"
-            simReport(data, subdir, nrNodes)
+            simReport(routerTypeConf, data, subdir, nrNodes)
 
-        if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.NR_NODES <= conf.SMALL_MESH_NUM_NODES:
+        if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM and routerTypeConf.NR_NODES <= routerTypeConf.SMALL_MESH_NUM_NODES:
             print("'Small Mesh' correction was applied to this simulation")
 
         # Print summary
@@ -376,10 +378,10 @@ for rt_i, routerType in enumerate(routerTypes):
         print('Usefulness average:', round(np.nanmean(nodeUsefulness), 2))
         print('Delay average:', round(np.nanmean(meanDelay), 2))
         print('Tx air utilization average:', round(np.nanmean(meanTxAirUtilization), 2))
-        if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
+        if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM:
             print("Coverage false positives:", round(np.nanmean(coverageFp), 2))
             print("Coverage false negatives:", round(np.nanmean(coverageFn), 2))
-        if conf.MODEL_ASYMMETRIC_LINKS:
+        if routerTypeConf.MODEL_ASYMMETRIC_LINKS:
             print('Asymmetric Links:', round(np.nanmean(asymmetricLinkRate), 2))
             print('Symmetric Links:', round(np.nanmean(symmetricLinkRate), 2))
             print('No Links:', round(np.nanmean(noLinkRate), 2))

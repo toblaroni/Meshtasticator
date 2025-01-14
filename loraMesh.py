@@ -6,10 +6,11 @@ from lib.discrete_event import *
 from lib.mac import *
 from lib.packet import *
 from lib.node import *
-from lib import config as conf
+from lib.config import Config
 
 VERBOSE = True
 random.seed(conf.SEED)
+conf = Config()
 
 if VERBOSE:
 	def verboseprint(*args, **kwargs): 
@@ -35,15 +36,15 @@ asymmetricLinks = 0
 noLinks = 0
 
 if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.SHOW_PROBABILITY_FUNCTION_COMPARISON == True:
-	plotRebroadcastProbabilityModels()
+	plotRebroadcastProbabilityModels(conf)
 
-graph = Graph()
+graph = Graph(conf)
 for i in range(conf.NR_NODES):
-	node = MeshNode(nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i], messageSeq, verboseprint)
+	node = MeshNode(conf, nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i], messageSeq, verboseprint)
 	nodes.append(node)
 	graph.addNode(node)
 	
-totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(nodes)
+totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(conf, nodes)
 
 if conf.MOVEMENT_ENABLED:
 	env.process(runGraphUpdates(env, graph, nodes))
@@ -119,4 +120,4 @@ if conf.MOVEMENT_ENABLED == True:
 graph.save()
 
 if conf.PLOT:
-	plotSchedule(packets, messages)
+	plotSchedule(conf, packets, messages)

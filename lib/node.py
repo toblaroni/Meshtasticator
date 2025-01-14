@@ -5,11 +5,11 @@ from lib.common import *
 from lib.discrete_event import *
 from lib.mac import *
 from lib.packet import *
-from lib import config as conf
 
 
 class MeshNode():
-    def __init__(self, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint):
+    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint):
+        self.conf = conf
         self.nodeid = nodeid
         self.verboseprint = verboseprint
         self.moveRng = random.Random(nodeid)
@@ -25,13 +25,13 @@ class MeshNode():
             self.hopLimit = nodeConfig['hopLimit']
             self.antennaGain = nodeConfig['antennaGain']
         else: 
-            self.x, self.y = findRandomPosition(nodes)
-            self.z = conf.HM
-            self.isRouter = conf.router
+            self.x, self.y = findRandomPosition(self.conf, nodes)
+            self.z = self.conf.HM
+            self.isRouter = self.conf.router
             self.isRepeater = False
             self.isClientMute = False
-            self.hopLimit = conf.hopLimit
-            self.antennaGain = conf.GL
+            self.hopLimit = self.conf.hopLimit
+            self.antennaGain = self.conf.GL
         self.messageSeq = messageSeq
         self.env = env
         self.period = period
@@ -64,7 +64,7 @@ class MeshNode():
         self.lastBroadcastY = self.y
         self.lastBroadcastTime = 0
         # track total transmit time for the last 6 buckets (each is 10s in firmware logic)
-        self.channelUtilization = [0]*conf.CHANNEL_UTILIZATION_PERIODS  # each entry is ms spent on air in that interval
+        self.channelUtilization = [0]*self.conf.CHANNEL_UTILIZATION_PERIODS  # each entry is ms spent on air in that interval
         self.channelUtilizationIndex = 0  # which "bucket" is current
         self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
 
@@ -75,16 +75,16 @@ class MeshNode():
         self.transmitter = simpy.Resource(env, 1)
 
         # start mobility if enabled
-        if conf.MOVEMENT_ENABLED and self.moveRng.random() <= conf.APPROX_RATIO_NODES_MOVING:
+        if self.conf.MOVEMENT_ENABLED and self.moveRng.random() <= self.conf.APPROX_RATIO_NODES_MOVING:
             self.isMoving = True
-            if self.moveRng.random() <= conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
+            if self.moveRng.random() <= self.conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
                 self.gpsEnabled = True
 
             # Randomly assign a movement speed
             possibleSpeeds = [
-                conf.WALKING_METERS_PER_MIN,  # e.g.,  96 m/min
-                conf.BIKING_METERS_PER_MIN,   # e.g., 390 m/min
-                conf.DRIVING_METERS_PER_MIN   # e.g., 1500 m/min
+                self.conf.WALKING_METERS_PER_MIN,  # e.g.,  96 m/min
+                self.conf.BIKING_METERS_PER_MIN,   # e.g., 390 m/min
+                self.conf.DRIVING_METERS_PER_MIN   # e.g., 1500 m/min
             ]
             self.movementStepSize = self.moveRng.choice(possibleSpeeds)
 
@@ -97,7 +97,7 @@ class MeshNode():
         """
         while True:
             # Wait 10 seconds of simulated time
-            yield env.timeout(conf.TEN_SECONDS_INTERVAL)
+            yield env.timeout(self.conf.TEN_SECONDS_INTERVAL)
 
             curTotalAirtime = self.txAirUtilization  # total so far, in *milliseconds*
             blockAirtimeMs = curTotalAirtime - self.prevTxAirUtilization
@@ -105,7 +105,7 @@ class MeshNode():
             self.channelUtilization[self.channelUtilizationIndex] = blockAirtimeMs
 
             self.prevTxAirUtilization = curTotalAirtime
-            self.channelUtilizationIndex = (self.channelUtilizationIndex + 1) % conf.CHANNEL_UTILIZATION_PERIODS
+            self.channelUtilizationIndex = (self.channelUtilizationIndex + 1) % self.conf.CHANNEL_UTILIZATION_PERIODS
 
     def channelUtilizationPercent(self) -> float:
         """
@@ -114,7 +114,7 @@ class MeshNode():
         sumMs = sum(self.channelUtilization)
         # 6 intervals, each 10 seconds = 60,000 ms total
         # fraction = sum_ms / 60000, then multiply by 100 for percent
-        return (sumMs / (conf.CHANNEL_UTILIZATION_PERIODS * conf.TEN_SECONDS_INTERVAL)) * 100.0
+        return (sumMs / (self.conf.CHANNEL_UTILIZATION_PERIODS * self.conf.TEN_SECONDS_INTERVAL)) * 100.0
 
     def updateCoverageKnowledge(self, neighbor_id):
         self.coverageKnowledge.add(neighbor_id)
@@ -123,7 +123,7 @@ class MeshNode():
     def removeStaleNodes(self):
         # remove nodes we haven't been heard from in X seconds
         for n in list(self.coverageKnowledge):
-            if (self.env.now - self.lastHeardTime[n]) > conf.RECENCY_THRESHOLD:
+            if (self.env.now - self.lastHeardTime[n]) > self.conf.RECENCY_THRESHOLD:
                 self.coverageKnowledge.remove(n)
                 del self.lastHeardTime[n]
 
@@ -143,10 +143,10 @@ class MeshNode():
             dx = distance * math.cos(angle)
             dy = distance * math.sin(angle)
             
-            leftBound   = conf.OX - conf.XSIZE/2
-            rightBound  = conf.OX + conf.XSIZE/2
-            bottomBound = conf.OY - conf.YSIZE/2
-            topBound    = conf.OY + conf.YSIZE/2
+            leftBound   = self.conf.OX - self.conf.XSIZE/2
+            rightBound  = self.conf.OX + self.conf.XSIZE/2
+            bottomBound = self.conf.OY - self.conf.YSIZE/2
+            topBound    = self.conf.OY + self.conf.YSIZE/2
 
             # Then in moveNode:
             new_x = min(max(self.x + dx, leftBound), rightBound)
@@ -159,8 +159,8 @@ class MeshNode():
             if self.gpsEnabled:
                 distanceTraveled = calcDist(self.lastBroadcastX, self.x, self.lastBroadcastY, self.y)
                 timeElapsed = env.now - self.lastBroadcastTime
-                if (distanceTraveled >= conf.SMART_POSITION_DISTANCE_THRESHOLD and
-                    timeElapsed >= conf.SMART_POSITION_DISTANCE_MIN_TIME):
+                if (distanceTraveled >= self.conf.SMART_POSITION_DISTANCE_THRESHOLD and
+                    timeElapsed >= self.conf.SMART_POSITION_DISTANCE_MIN_TIME):
 
                     currentUtil = self.channelUtilizationPercent()
                     if currentUtil < 25.0:
@@ -173,7 +173,7 @@ class MeshNode():
 
             
             # Wait until next move
-            nextMove = self.getNextTime(conf.ONE_MIN_INTERVAL)
+            nextMove = self.getNextTime(self.conf.ONE_MIN_INTERVAL)
             if nextMove >= 0:
                 yield env.timeout(nextMove)
             else:
@@ -184,7 +184,7 @@ class MeshNode():
         self.messageSeq["val"] += 1
         messageSeq = self.messageSeq["val"]
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
-        p = MeshPacket(self.nodes, self.nodeid, destId, self.nodeid, conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
+        p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
         self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
         self.packets.append(p)
         self.env.process(self.transmit(p))
@@ -193,7 +193,7 @@ class MeshNode():
     def getNextTime(self, period):
         nextGen = self.nodeRng.expovariate(1.0/float(period))
         # do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
-        if self.env.now+nextGen+self.hopLimit*airtime(conf.SFMODEM[conf.MODEM], conf.CRMODEM[conf.MODEM], conf.PACKETLENGTH, conf.BWMODEM[conf.MODEM]) < conf.SIMTIME:
+        if self.env.now+nextGen+self.hopLimit*airtime(self.conf, self.conf.SFMODEM[self.conf.MODEM], self.conf.CRMODEM[self.conf.MODEM], self.conf.PACKETLENGTH, self.conf.BWMODEM[self.conf.MODEM]) < self.conf.SIMTIME:
             return nextGen
         return -1
 
@@ -205,7 +205,7 @@ class MeshNode():
             if nextGen >= 0:
                 yield self.env.timeout(nextGen) 
 
-                if conf.DMs:
+                if self.conf.DMs:
                     destId = self.nodeRng.choice([i for i in range(0, len(self.nodes)) if i is not self.nodeid])
                 else:
                     destId = NODENUM_BROADCAST
@@ -217,7 +217,7 @@ class MeshNode():
                     yield self.env.timeout(retransmissionMsec)
 
                     ackReceived = False  # check whether you received an ACK on the transmitted message
-                    minRetransmissions = conf.maxRetransmission
+                    minRetransmissions = self.conf.maxRetransmission
                     for packetSent in self.packets:
                         if packetSent.origTxNodeId == self.nodeid and packetSent.seq == p.seq:
                             if packetSent.retransmissions < minRetransmissions:
@@ -229,7 +229,7 @@ class MeshNode():
                         break
                     else: 
                         if minRetransmissions > 0:  # generate new packet with same sequence number
-                            pNew = MeshPacket(self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint)
+                            pNew = MeshPacket(self.conf, self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint)
                             pNew.retransmissions = minRetransmissions-1
                             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
                             self.packets.append(pNew)
@@ -265,7 +265,7 @@ class MeshNode():
                 self.nrPacketsSent += 1
                 for rx_node in self.nodes:
                     if packet.sensedByN[rx_node.nodeid] == True:
-                        if (checkcollision(self.env, packet, rx_node.nodeid, self.packetsAtN) == 0):
+                        if (checkcollision(self.conf, self.env, packet, rx_node.nodeid, self.packetsAtN) == 0):
                             self.packetsAtN[rx_node.nodeid].append(packet)
                 packet.startTime = self.env.now
                 packet.endTime = self.env.now + packet.timeOnAir
@@ -345,23 +345,23 @@ class MeshNode():
                     self.messageSeq["val"] += 1
                     messageSeq = self.messageSeq["val"]
                     self.messages.append(MeshMessage(self.nodeid, p.origTxNodeId, self.env.now, messageSeq))
-                    pAck = MeshPacket(self.nodes, self.nodeid, p.origTxNodeId, self.nodeid, conf.ACKLENGTH, messageSeq, self.env.now, False, True, p.seq, self.env.now, self.verboseprint) 
+                    pAck = MeshPacket(self.conf, self.nodes, self.nodeid, p.origTxNodeId, self.nodeid, self.conf.ACKLENGTH, messageSeq, self.env.now, False, True, p.seq, self.env.now, self.verboseprint) 
                     self.packets.append(pAck)
                     self.env.process(self.transmit(pAck))
                 # Rebroadcasting Logic for received message. This is a broadcast or a DM not meant for us.
                 elif not p.destId == self.nodeid and not ackReceived and not realAckReceived and p.hopLimit > 0:
                     # FloodingRouter: rebroadcast received packet
-                    if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.MANAGED_FLOOD:
+                    if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.MANAGED_FLOOD:
                         if not self.isClientMute:
                             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
-                            pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
+                            pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                             pNew.hopLimit = p.hopLimit-1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
                     # BloomRouter: rebroadcast received packet
-                    elif conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
+                    elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.BLOOM:
                         self.verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
-                        pNew = MeshPacket(self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint, p.coverageFilter, p.totalNodesInCoverageFilter)
+                        pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint, p.coverageFilter, p.totalNodesInCoverageFilter)
                         pNew.hopLimit = p.hopLimit-1
 
                         # Record how far off our coverage knowledge is from actual coverage
