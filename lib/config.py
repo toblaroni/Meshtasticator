@@ -125,7 +125,7 @@ class Config:
 
         # Set this to True to enable the asymmetric link model
         # Adds a random offset to the link quality of each link
-        self.MODEL_ASYMMETRIC_LINKS = True
+        self.MODEL_ASYMMETRIC_LINKS = False
         self.MODEL_ASYMMETRIC_LINKS_MEAN = 0
         self.MODEL_ASYMMETRIC_LINKS_STDDEV = 3
         # Stores the offset for each link
@@ -136,7 +136,7 @@ class Config:
         ####### MOVING NODE SIMULATION VARIABLES ########
         #################################################
 
-        self.MOVEMENT_ENABLED = True
+        self.MOVEMENT_ENABLED = False
         # The average number of meters a human walks in a minute
         self.WALKING_METERS_PER_MIN = 96
         # The average number of meters a human bikes in a minute

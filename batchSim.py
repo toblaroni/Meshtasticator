@@ -100,7 +100,7 @@ def simulationProgress(env, currentRep, repetitions, endTime):
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
 
 repetitions = 3
-numberOfNodes = [50, 75, 100, 200]
+numberOfNodes = [40, 50, 75, 100, 200]
 
 # We will collect the metrics in dictionaries keyed by router type.
 # For example: collisions_dict[ routerType ] = [list of mean collisions, one per nrNodes]
@@ -229,6 +229,7 @@ for rt_i, routerType in enumerate(routerTypes):
             # For the highest degree of separation between runs, config
             # should be instantiated every repetition for this router type and node number
             routerTypeConf = Config()
+            routerTypeConf.SELECTED_ROUTER_TYPE = routerType
             routerTypeConf.NR_NODES = nrNodes
             routerTypeConf.updateRouterDependencies()
 
