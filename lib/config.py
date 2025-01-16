@@ -99,12 +99,12 @@ class Config:
         self.BLOOM_FILTER_SIZE_BYTES = 13
         self.BLOOM_FILTER_SIZE_BITS = self.BLOOM_FILTER_SIZE_BYTES * 8
         # When bloom router is enabled, this is how many hops will be used
-        self.BLOOM_HOPS = 15
+        self.BLOOM_HOPS = 5
         # This will scale up the impact of the coverage 
         # ratio on probability of rebroadcast
-        self.COVERAGE_RATIO_SCALE_FACTOR = 3.5
+        self.COVERAGE_RATIO_SCALE_FACTOR = 1
         # The absolute minimum rebroadcast probability under any circumstances
-        self.BASELINE_REBROADCAST_PROBABILITY = 0.2
+        self.BASELINE_REBROADCAST_PROBABILITY = 0.0
         # This is probabiliy of rebroadcast if we have 0 known neighbors (high uncertainty)
         self.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
         # The bloom router performs poorly with small, volatile networks
@@ -117,7 +117,7 @@ class Config:
         self.SHOW_PROBABILITY_FUNCTION_COMPARISON = False
         # How long does an immediate neighbor remain in our coverage knowledge before aging out
         # If SIMTIME is less than this, nodes will never fully age out of coverage
-        self.RECENCY_THRESHOLD = 1 * self.ONE_HR_INTERVAL
+        self.RECENCY_THRESHOLD = 4 * self.ONE_HR_INTERVAL
 
         #####################################################
         ####### ASYMMETRIC LINK SIMULATION VARIABLES ########

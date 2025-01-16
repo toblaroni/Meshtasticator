@@ -312,7 +312,7 @@ for rt_i, routerType in enumerate(routerTypes):
 
             # Coverage is only meaningful for BLOOM
             if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM:
-                potentialReceivers = len(packets) * (routerTypeConf.NR_NODES - 1)
+                potentialReceivers = (len(packets) * (routerTypeConf.NR_NODES - 1))
                 if potentialReceivers > 0:
                     coverageFp[rep] = round(
                         sum([n.coverageFalsePositives for n in nodes]) / potentialReceivers * 100, 2
@@ -632,20 +632,4 @@ plt.xlabel('#nodes')
 plt.ylabel('Usefulness (%)')
 plt.legend()
 plt.title('Usefulness by Router Type (with % Diff Annotations)')
-plt.show()
-
-###########################################################
-# 6) Coverage (Bloom Only) - Example
-###########################################################
-
-plt.figure()
-for rt in routerTypes:
-    if rt == conf.ROUTER_TYPE.BLOOM:
-        plt.plot(numberOfNodes, coverageFp_dict[rt], '-o', label=f"Cov False Pos: {router_type_label(rt)}")
-        plt.plot(numberOfNodes, coverageFn_dict[rt], '-o', label=f"Cov False Neg: {router_type_label(rt)}")
-
-plt.xlabel('#nodes')
-plt.ylabel('Coverage rates (%)')
-plt.legend()
-plt.title('Coverage (Bloom Only)')
 plt.show()
