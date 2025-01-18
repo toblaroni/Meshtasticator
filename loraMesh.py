@@ -19,7 +19,8 @@ else:
 	def verboseprint(*args, **kwargs): 
 		pass
 
-nodeConfig = getParams(sys.argv)
+nodeConfig = getParams(conf, sys.argv)
+conf.updateRouterDependencies()
 env = simpy.Environment()
 bc_pipe = BroadcastPipe(env)
 
@@ -59,6 +60,8 @@ env.run(until=conf.SIMTIME)
 print("\n====== END OF SIMULATION ======")
 print("*******************************")
 print(f"\nRouter Type: {conf.SELECTED_ROUTER_TYPE}")
+if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.NR_NODES <= conf.SMALL_MESH_NUM_NODES:
+	print("'Small Mesh' correction was applied to this simulation")
 print('Number of messages created:', messageSeq["val"])
 sent = len(packets)
 if conf.DMs:

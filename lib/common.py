@@ -17,8 +17,7 @@ except ImportError:
 	exit(1)
 
 
-def getParams(args):
-	conf = Config()
+def getParams(conf, args):
 	if len(args) > 3:
 		print("Usage: ./loraMesh [nr_nodes] [--from-file [file_name]]")
 		print("Do not specify the number of nodes when reading from a file.")
