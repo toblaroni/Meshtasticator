@@ -102,11 +102,11 @@ class Config:
         self.BLOOM_HOPS = 15
         # This will scale up the impact of the coverage 
         # ratio on probability of rebroadcast
-        self.COVERAGE_RATIO_SCALE_FACTOR = 0.75
+        self.COVERAGE_RATIO_SCALE_FACTOR = 1.3
         # The absolute minimum rebroadcast probability under any circumstances
         self.BASELINE_REBROADCAST_PROBABILITY = 0.0
         # This is probabiliy of rebroadcast if we have 0 known neighbors (high uncertainty)
-        self.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = 1
+        self.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = .3
         # The bloom router performs poorly with small, volatile networks
         # this is the threshold under which we disable the bloom router and reset hops to 3
         self.SMALL_MESH_NUM_NODES = 30
@@ -117,7 +117,7 @@ class Config:
         self.SHOW_PROBABILITY_FUNCTION_COMPARISON = False
         # How long does an immediate neighbor remain in our coverage knowledge before aging out
         # If SIMTIME is less than this, nodes will never fully age out of coverage
-        self.RECENCY_THRESHOLD = 1 * self.ONE_HR_INTERVAL
+        self.RECENCY_THRESHOLD = 2 * self.ONE_HR_INTERVAL
 
         #####################################################
         ####### ASYMMETRIC LINK SIMULATION VARIABLES ########
@@ -125,7 +125,7 @@ class Config:
 
         # Set this to True to enable the asymmetric link model
         # Adds a random offset to the link quality of each link
-        self.MODEL_ASYMMETRIC_LINKS = False
+        self.MODEL_ASYMMETRIC_LINKS = True
         self.MODEL_ASYMMETRIC_LINKS_MEAN = 0
         self.MODEL_ASYMMETRIC_LINKS_STDDEV = 3
         # Stores the offset for each link
@@ -136,7 +136,7 @@ class Config:
         ####### MOVING NODE SIMULATION VARIABLES ########
         #################################################
 
-        self.MOVEMENT_ENABLED = False
+        self.MOVEMENT_ENABLED = True
         # The average number of meters a human walks in a minute
         self.WALKING_METERS_PER_MIN = 96
         # The average number of meters a human bikes in a minute
@@ -144,7 +144,7 @@ class Config:
         # The average number of meters a human drives in a minute
         self.DRIVING_METERS_PER_MIN = 1500
         # The % of nodes that end up mobile in the simulation 0.4 = ~40%
-        self.APPROX_RATIO_NODES_MOVING = 0.4
+        self.APPROX_RATIO_NODES_MOVING = 0.3
         # The % of mobile nodes that have GPS enabled 0.5 = 50%
         self.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.3
 

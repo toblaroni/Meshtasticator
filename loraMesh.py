@@ -48,7 +48,7 @@ for i in range(conf.NR_NODES):
 totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(conf, nodes)
 
 if conf.MOVEMENT_ENABLED:
-	env.process(runGraphUpdates(env, graph, nodes))
+	env.process(runGraphUpdates(env, graph, nodes, conf.ONE_MIN_INTERVAL))
 
 conf.updateRouterDependencies()
 

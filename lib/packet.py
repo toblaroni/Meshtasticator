@@ -63,7 +63,8 @@ class MeshPacket():
 	def setCoverageFilter(self):
 		self.coverageFilter = CoverageFilter(self.conf)
 		# Always add the transmitting node
-		self.coverageFilter.add(self.txNodeId)
+		# Not needed now that we know who relayed the packet
+		# self.coverageFilter.add(self.txNodeId)
 
 		# Merge prior coverage bits
 		if self.previousCoverageFilter is not None:
