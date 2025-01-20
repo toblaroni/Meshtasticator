@@ -28,6 +28,26 @@ VERBOSE = False
 SHOW_GRAPH = False
 SAVE = True
 
+#######################################
+####### SET BATCH PARAMS BELOW ########
+#######################################
+
+# Add your router types here
+# This leaves room for new experimentation of 
+# different routing algorithms
+routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD]
+
+# How many times should each combination run
+repetitions = 3
+
+# How many nodes should be simulated in each test
+numberOfNodes = [3, 5, 10, 15, 30]
+
+
+#######################################
+####### SET BATCH PARAMS ABOVE ########
+#######################################
+
 if VERBOSE:
     def verboseprint(*args, **kwargs): 
         print(*args, **kwargs)
@@ -95,12 +115,6 @@ def simulationProgress(env, currentRep, repetitions, endTime):
         lastEnvTime = env.now
         
         yield env.timeout(10 * conf.ONE_SECOND_INTERVAL)
-
-# Add your router types here
-routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD]
-
-repetitions = 3
-numberOfNodes = [40, 50, 75, 100, 200]
 
 # We will collect the metrics in dictionaries keyed by router type.
 # For example: collisions_dict[ routerType ] = [list of mean collisions, one per nrNodes]
