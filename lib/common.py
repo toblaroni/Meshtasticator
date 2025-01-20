@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from matplotlib.widgets import Button, Slider, RadioButtons, TextBox
-
-from . import config as conf
+from lib.config import Config
 from . import phy
 
 try:
@@ -18,7 +17,7 @@ except ImportError:
 	exit(1)
 
 
-def getParams(args):
+def getParams(conf, args):
 	if len(args) > 3:
 		print("Usage: ./loraMesh [nr_nodes] [--from-file [file_name]]")
 		print("Do not specify the number of nodes when reading from a file.")
@@ -47,9 +46,9 @@ def getParams(args):
 					print(f"Router type must be one of: {', '.join(valid_types)}")
 					exit(1)
 				if conf.NR_NODES == -1:
-					config = genScenario()
+					config = genScenario(conf)
 		else: 
-			config = genScenario()
+			config = genScenario(conf)
 		if config[0] is not None:
 			conf.NR_NODES = len(config.keys())
 		if conf.NR_NODES < 2:
@@ -63,7 +62,7 @@ def getParams(args):
 	print("Interference level:", conf.INTERFERENCE_LEVEL)
 	return config
 
-def genScenario():
+def genScenario(conf):
 	save = True  # set to True if you want to save the coordinates of the nodes 
 	nodeX = []
 	nodeY = []
@@ -198,7 +197,7 @@ def genScenario():
 
 import random
 
-def findRandomPosition(nodes):
+def findRandomPosition(conf, nodes):
 	foundMin = True
 	foundMax = False
 	tries = 0
@@ -215,7 +214,7 @@ def findRandomPosition(nodes):
 				if dist < conf.MINDIST:
 					foundMin = False
 					break
-				pathLoss = phy.estimatePathLoss(dist, conf.FREQ)
+				pathLoss = phy.estimatePathLoss(conf, dist, conf.FREQ)
 				rssi = conf.PTX + 2*conf.GL - pathLoss
 				# At least one node should be able to reach it
 				if rssi >= conf.SENSMODEM[conf.MODEM]:
@@ -234,7 +233,7 @@ def findRandomPosition(nodes):
 			break
 	return max(-conf.XSIZE/2, x),max(-conf.YSIZE/2, y)
 
-def runGraphUpdates(env, graph, nodes, interval=conf.ONE_MIN_INTERVAL/2):
+def runGraphUpdates(env, graph, nodes, interval):
     while True:
         # Wait 'interval' sim-mseconds
         yield env.timeout(interval)
@@ -246,7 +245,7 @@ def calcDist(x0, x1, y0, y1, z0=0, z1=0):
 
 
 scheduleIdx = 0
-def plotSchedule(packets, messages):
+def plotSchedule(conf, packets, messages):
 	def drawSchedule(i):
 		t = timeSequences[i]
 		plt.suptitle('Time schedule {}/{}\nDouble click to continue.'.format(i+1, len(timeSequences)))
@@ -318,12 +317,48 @@ def plotSchedule(packets, messages):
 	fig.canvas.mpl_connect('button_press_event', onclick)
 	drawSchedule(0)
 
+def plotRebroadcastProbabilityModels(conf):
+	x = np.linspace(0, 1, 100)
+	# (1) Sigmoid
+	midpoint = 0.3
+	steepness = 10.0
+	y_sigmoid = 1 / (1 + np.exp(-steepness * (x - midpoint)))
+
+	# (2) Exponential
+	k = 5.0
+	y_exp = 1 - np.exp(-k * x)
+
+	# (3) Power
+	n = 2.0
+	y_power = x ** n
+
+	# (4) Sigmoid + 20% Floor
+	floor_prob = 0.20
+	y_sigmoid_floor = np.maximum(floor_prob, y_sigmoid)
+
+	y_factor = conf.BASELINE_REBROADCAST_PROBABILITY + (x * conf.COVERAGE_RATIO_SCALE_FACTOR)
+	y_factor = np.clip(y_factor, 0.0, 1.0)
+
+	plt.figure(figsize=(10,7))
+	plt.plot(x, y_sigmoid, label='Sigmoid', lw=2)
+	plt.plot(x, y_exp, label='Exponential', lw=2)
+	plt.plot(x, y_power, label='Power (n=2)', lw=2)
+	plt.plot(x, y_factor, label='Linear Factor (f='+str(conf.COVERAGE_RATIO_SCALE_FACTOR)+')', lw=2)
+	plt.plot(x, y_sigmoid_floor, label='Sigmoid + 0.2 floor', lw=2, linestyle='--')
+	plt.title("Comparison of Probability Functions")
+	plt.xlabel("Coverage Ratio (0 to 1)")
+	plt.ylabel("Rebroadcast Probability (0 to 1)")
+	plt.grid(True)
+	plt.legend()
+	plt.show()
+
 def move_figure(fig, x, y):
   fig.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
 
 
 class Graph():
-	def __init__(self):
+	def __init__(self, conf):
+		self.conf = conf
 		self.xmax = conf.XSIZE/2 +1
 		self.ymax = conf.YSIZE/2 +1
 		self.packets = []
@@ -365,7 +400,7 @@ class Graph():
     
 	def addNode(self, node):
 		# place the node
-		if not conf.RANDOM:
+		if not self.conf.RANDOM:
 			txt = self.ax.annotate(str(node.nodeid), (node.x-5, node.y+5))
 			self.node_labels[node.nodeid] = txt
 
@@ -395,9 +430,10 @@ class Graph():
 				os.mkdir("out")
 			os.mkdir(os.path.join("out", "graphics"))
 
-		plt.savefig(os.path.join("out", "graphics", "placement_"+str(conf.NR_NODES)))
+		plt.savefig(os.path.join("out", "graphics", "placement_"+str(self.conf.NR_NODES)))
 
-def setupAsymmetricLinks(nodes):
+def setupAsymmetricLinks(conf, nodes):
+	asymLinkRng = random.Random(conf.SEED)
 	totalPairs = 0
 	symmetricLinks = 0
 	asymmetricLinks = 0
@@ -406,7 +442,7 @@ def setupAsymmetricLinks(nodes):
 		for b in range(conf.NR_NODES):
 			if i != b:
 				if conf.MODEL_ASYMMETRIC_LINKS:
-					conf.LINK_OFFSET[(i,b)] = random.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
+					conf.LINK_OFFSET[(i,b)] = asymLinkRng.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
 				else:
 					conf.LINK_OFFSET[(i,b)] = 0
 
@@ -417,7 +453,7 @@ def setupAsymmetricLinks(nodes):
 				nodeA = nodes[a]
 				nodeB = nodes[b]
 				distAB = calcDist(nodeA.x, nodeB.x, nodeA.y, nodeB.y, nodeA.z, nodeB.z)
-				pathLossAB = phy.estimatePathLoss(distAB, conf.FREQ, nodeA.z, nodeB.z)
+				pathLossAB = phy.estimatePathLoss(conf, distAB, conf.FREQ, nodeA.z, nodeB.z)
 				
 				offsetAB = conf.LINK_OFFSET[(a, b)]
 				offsetBA = conf.LINK_OFFSET[(b, a)]
