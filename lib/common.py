@@ -1,3 +1,4 @@
+import math
 import os
 import random
 
@@ -6,8 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from matplotlib.widgets import Button, Slider, RadioButtons, TextBox
-
-from . import config as conf
+from lib.config import Config
 from . import phy
 
 try:
@@ -17,7 +17,7 @@ except ImportError:
 	exit(1)
 
 
-def getParams(args):
+def getParams(conf, args):
 	if len(args) > 3:
 		print("Usage: ./loraMesh [nr_nodes] [--from-file [file_name]]")
 		print("Do not specify the number of nodes when reading from a file.")
@@ -34,8 +34,22 @@ def getParams(args):
 			else:
 				conf.NR_NODES = int(args[1])
 				config = [None for _ in range(conf.NR_NODES)]
+				if len(args) > 2:
+					try:
+						# Attempt to convert the string args[2] into a valid enum member
+						routerType = conf.ROUTER_TYPE(args[2])
+						conf.SELECTED_ROUTER_TYPE = routerType
+						conf.updateRouterDependencies()
+					except ValueError:
+						# If it fails, print possible values
+						valid_types = [member.name for member in conf.ROUTER_TYPE]
+						print(f"Invalid router type: {args[2]}")
+						print(f"Router type must be one of: {', '.join(valid_types)}")
+						exit(1)
+				if conf.NR_NODES == -1:
+					config = genScenario(conf)
 		else: 
-			config = genScenario()
+			config = genScenario(conf)
 		if config[0] is not None:
 			conf.NR_NODES = len(config.keys())
 		if conf.NR_NODES < 2:
@@ -49,13 +63,7 @@ def getParams(args):
 	print("Interference level:", conf.INTERFERENCE_LEVEL)
 	return config
 
-
-def setBatch(simNr):
-	conf.SEED = simNr
-	conf.VERBOSE = False
-
-
-def genScenario():
+def genScenario(conf):
 	save = True  # set to True if you want to save the coordinates of the nodes 
 	nodeX = []
 	nodeY = []
@@ -188,11 +196,14 @@ def genScenario():
 
 	return nodeDict
 
+import random
 
-def findRandomPosition(nodes):
+def findRandomPosition(conf, nodes):
 	foundMin = True
 	foundMax = False
 	tries = 0
+	x = 0
+	y = 0
 	while not (foundMin and foundMax):
 		a = random.random()
 		b = random.random()
@@ -204,7 +215,7 @@ def findRandomPosition(nodes):
 				if dist < conf.MINDIST:
 					foundMin = False
 					break
-				pathLoss = phy.estimatePathLoss(dist, conf.FREQ)
+				pathLoss = phy.estimatePathLoss(conf, dist, conf.FREQ)
 				rssi = conf.PTX + 2*conf.GL - pathLoss
 				# At least one node should be able to reach it
 				if rssi >= conf.SENSMODEM[conf.MODEM]:
@@ -221,15 +232,21 @@ def findRandomPosition(nodes):
 		if tries > 1000:
 			print('Could not find a location to place the node. Try increasing XSIZE/YSIZE or decreasing MINDIST.')
 			break
-	return x,y
+	return max(-conf.XSIZE/2, x),max(-conf.YSIZE/2, y)
 
+def runGraphUpdates(env, graph, nodes, interval):
+    while True:
+        # Wait 'interval' sim-mseconds
+        yield env.timeout(interval)
+        # Now update the positions in the graph
+        graph.updatePositions(nodes)
 
 def calcDist(x0, x1, y0, y1, z0=0, z1=0): 
 	return np.sqrt(((abs(x0-x1))**2)+((abs(y0-y1))**2)+((abs(z0-z1)**2)))
 
 
 scheduleIdx = 0
-def plotSchedule(packets, messages):
+def plotSchedule(conf, packets, messages):
 	def drawSchedule(i):
 		t = timeSequences[i]
 		plt.suptitle('Time schedule {}/{}\nDouble click to continue.'.format(i+1, len(timeSequences)))
@@ -301,42 +318,123 @@ def plotSchedule(packets, messages):
 	fig.canvas.mpl_connect('button_press_event', onclick)
 	drawSchedule(0)
 
-
 def move_figure(fig, x, y):
   fig.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
 
 
 class Graph():
-	def __init__(self):
+	def __init__(self, conf):
+		self.conf = conf
 		self.xmax = conf.XSIZE/2 +1
 		self.ymax = conf.YSIZE/2 +1
 		self.packets = []
 		self.fig, self.ax = plt.subplots()
-		plt.suptitle('Placement of {} nodes'.format(
-				conf.NR_NODES))
+		plt.suptitle('Placement of {} nodes'.format(conf.NR_NODES))
 		self.ax.set_xlim(-self.xmax+conf.OX, self.xmax+conf.OX)
 		self.ax.set_ylim(-self.ymax+conf.OY, self.ymax+conf.OY)
 		self.ax.set_xlabel('x (m)')
 		self.ax.set_ylabel('y (m)')
 		move_figure(self.fig, 200, 200)
 
+		# --- new: keep track of plot elements ---
+		self.node_circles = {}
+		self.node_markers = {}
+		# If you want labels (text annotations) also updated:
+		self.node_labels = {}
 
+	def updatePositions(self, nodes):
+		for node in nodes:
+			node_id = node.nodeid
+
+			# 1) Update the marker
+			marker = self.node_markers[node_id]
+			marker.set_xdata(node.x)
+			marker.set_ydata(node.y)
+
+			# 2) Update the circle center
+			circle = self.node_circles[node_id]
+			circle.center = (node.x, node.y)
+
+			# 3) (Optional) Update the text label, if you have one
+			if node_id in self.node_labels:
+				self.node_labels[node_id].set_position((node.x - 5, node.y + 5))
+
+		# 4) Redraw the canvas
+		self.fig.canvas.draw_idle()
+		# A short pause to let the UI update
+		plt.pause(0.01)
+    
 	def addNode(self, node):
 		# place the node
-		if not conf.RANDOM:
-			self.ax.annotate(str(node.nodeid), (node.x-5, node.y+5))
-		self.ax.plot(node.x, node.y, marker="o", markersize = 2.5, color = "grey")
-		circle = plt.Circle((node.x, node.y), radius=phy.MAXRANGE, color=plt.cm.Set1(node.nodeid), alpha=0.1)
+		if not self.conf.RANDOM:
+			txt = self.ax.annotate(str(node.nodeid), (node.x-5, node.y+5))
+			self.node_labels[node.nodeid] = txt
+
+		# Plot the node marker
+		(marker,) = self.ax.plot(
+			node.x, node.y,
+			marker="o", markersize=2.5, color="grey"
+		)
+		self.node_markers[node.nodeid] = marker
+
+		# Plot the coverage circle
+		circle = plt.Circle(
+			(node.x, node.y),
+			radius=phy.MAXRANGE,
+			color=plt.cm.Set1(node.nodeid),
+			alpha=0.1
+		)
 		self.ax.add_patch(circle)
+		self.node_circles[node.nodeid] = circle
+
 		self.fig.canvas.draw_idle()
 		plt.pause(0.1)
-
-
+    
 	def save(self):
 		if not os.path.isdir(os.path.join("out", "graphics")):
 			if not os.path.isdir("out"):
 				os.mkdir("out")
 			os.mkdir(os.path.join("out", "graphics"))
 
-		plt.savefig(os.path.join("out", "graphics", "placement_"+str(conf.NR_NODES)))
+		plt.savefig(os.path.join("out", "graphics", "placement_"+str(self.conf.NR_NODES)))
 
+def setupAsymmetricLinks(conf, nodes):
+	asymLinkRng = random.Random(conf.SEED)
+	totalPairs = 0
+	symmetricLinks = 0
+	asymmetricLinks = 0
+	noLinks = 0
+	for i in range(conf.NR_NODES):
+		for b in range(conf.NR_NODES):
+			if i != b:
+				if conf.MODEL_ASYMMETRIC_LINKS:
+					conf.LINK_OFFSET[(i,b)] = asymLinkRng.gauss(conf.MODEL_ASYMMETRIC_LINKS_MEAN, conf.MODEL_ASYMMETRIC_LINKS_STDDEV)
+				else:
+					conf.LINK_OFFSET[(i,b)] = 0
+
+	for a in range(conf.NR_NODES):
+		for b in range(conf.NR_NODES):
+			if a != b:
+				# Calculate constant RSSI in both directions
+				nodeA = nodes[a]
+				nodeB = nodes[b]
+				distAB = calcDist(nodeA.x, nodeB.x, nodeA.y, nodeB.y, nodeA.z, nodeB.z)
+				pathLossAB = phy.estimatePathLoss(conf, distAB, conf.FREQ, nodeA.z, nodeB.z)
+				
+				offsetAB = conf.LINK_OFFSET[(a, b)]
+				offsetBA = conf.LINK_OFFSET[(b, a)]
+				
+				rssiAB = conf.PTX + nodeA.antennaGain + nodeB.antennaGain - pathLossAB - offsetAB
+				rssiBA = conf.PTX + nodeB.antennaGain + nodeA.antennaGain - pathLossAB - offsetBA
+
+				canAhearB = (rssiAB >= conf.SENSMODEM[conf.MODEM])
+				canBhearA = (rssiBA >= conf.SENSMODEM[conf.MODEM])
+
+				totalPairs += 1
+				if canAhearB and canBhearA:
+					symmetricLinks += 1
+				elif canAhearB or canBhearA:
+					asymmetricLinks += 1
+				else:
+					noLinks += 1
+	return totalPairs, symmetricLinks, asymmetricLinks, noLinks

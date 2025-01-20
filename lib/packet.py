@@ -1,13 +1,12 @@
 from lib.common import calcDist
 from .phy import *
 
-
 NODENUM_BROADCAST = 0xFFFFFFFF
-random.seed(conf.SEED)
-
 
 class MeshPacket(): 
-	def __init__(self, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId):
+	def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, verboseprint):
+		self.conf = conf
+		self.verboseprint = verboseprint
 		self.origTxNodeId = origTxNodeId
 		self.destId = destId
 		self.txNodeId = txNodeId
@@ -16,42 +15,43 @@ class MeshPacket():
 		self.seq = seq
 		self.requestId = requestId
 		self.genTime = genTime
-		self.txpow = conf.PTX
-		self.LplAtN = [0 for _ in range(conf.NR_NODES)]
-		self.rssiAtN = [0 for _ in range(conf.NR_NODES)]
-		self.sensedByN = [False for _ in range(conf.NR_NODES)]
-		self.detectedByN = [False for _ in range(conf.NR_NODES)]
-		self.collidedAtN = [False for _ in range(conf.NR_NODES)]
-		self.receivedAtN = [False for _ in range(conf.NR_NODES)]
-		self.onAirToN = [True for _ in range(conf.NR_NODES)]
+		self.now = now
+		self.txpow = self.conf.PTX
+		self.LplAtN = [0 for _ in range(self.conf.NR_NODES)]
+		self.rssiAtN = [0 for _ in range(self.conf.NR_NODES)]
+		self.sensedByN = [False for _ in range(self.conf.NR_NODES)]
+		self.detectedByN = [False for _ in range(self.conf.NR_NODES)]
+		self.collidedAtN = [False for _ in range(self.conf.NR_NODES)]
+		self.receivedAtN = [False for _ in range(self.conf.NR_NODES)]
+		self.onAirToN = [True for _ in range(self.conf.NR_NODES)]
 
 		# configuration values
-		self.sf = conf.SFMODEM[conf.MODEM]
-		self.cr = conf.CRMODEM[conf.MODEM]
-		self.bw = conf.BWMODEM[conf.MODEM]
-		self.freq = conf.FREQ
-		tx_node = next(n for n in nodes if n.nodeid == self.txNodeId)
+		self.sf = self.conf.SFMODEM[self.conf.MODEM]
+		self.cr = self.conf.CRMODEM[self.conf.MODEM]
+		self.bw = self.conf.BWMODEM[self.conf.MODEM]
+		self.freq = self.conf.FREQ
+		self.tx_node = next(n for n in nodes if n.nodeid == self.txNodeId)
 		for rx_node in nodes:
 			if rx_node.nodeid == self.txNodeId:
 				continue
-			dist_3d = calcDist(tx_node.x, rx_node.x, tx_node.y, rx_node.y, tx_node.z, rx_node.z) 
-			self.LplAtN[rx_node.nodeid] = estimatePathLoss(dist_3d, self.freq, tx_node.z, rx_node.z)
-			self.rssiAtN[rx_node.nodeid] = self.txpow + tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
-			if self.rssiAtN[rx_node.nodeid] >= conf.SENSMODEM[conf.MODEM]:
+			dist_3d = calcDist(self.tx_node.x, rx_node.x, self.tx_node.y, rx_node.y, self.tx_node.z, rx_node.z) 
+			offset = self.conf.LINK_OFFSET[(self.txNodeId, rx_node.nodeid)]
+			self.LplAtN[rx_node.nodeid] = estimatePathLoss(self.conf, dist_3d, self.freq, self.tx_node.z, rx_node.z) + offset
+			self.rssiAtN[rx_node.nodeid] = self.txpow + self.tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
+			if self.rssiAtN[rx_node.nodeid] >= self.conf.SENSMODEM[self.conf.MODEM]:
 				self.sensedByN[rx_node.nodeid] = True
-			if self.rssiAtN[rx_node.nodeid] >= conf.CADMODEM[conf.MODEM]:
+			if self.rssiAtN[rx_node.nodeid] >= self.conf.CADMODEM[self.conf.MODEM]:
 				self.detectedByN[rx_node.nodeid] = True
 				
 		self.packetLen = plen
-		self.timeOnAir = airtime(self.sf, self.cr, self.packetLen, self.bw)
+		self.timeOnAir = airtime(self.conf, self.sf, self.cr, self.packetLen, self.bw)
 		self.startTime = 0
 		self.endTime = 0
 
 		# Routing
-		self.retransmissions = conf.maxRetransmission
+		self.retransmissions = self.conf.maxRetransmission
 		self.ackReceived = False
-		self.hopLimit = tx_node.hopLimit
-
+		self.hopLimit = self.tx_node.hopLimit
 
 class MeshMessage():
 	def __init__(self, origTxNodeId, destId, genTime, seq):
