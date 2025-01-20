@@ -36,9 +36,6 @@ symmetricLinks = 0
 asymmetricLinks = 0
 noLinks = 0
 
-if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.SHOW_PROBABILITY_FUNCTION_COMPARISON == True:
-	plotRebroadcastProbabilityModels(conf)
-
 graph = Graph(conf)
 for i in range(conf.NR_NODES):
 	node = MeshNode(conf, nodes, env, bc_pipe, i, conf.PERIOD, messages, packetsAtN, packets, delays, nodeConfig[i], messageSeq, verboseprint)
@@ -60,8 +57,6 @@ env.run(until=conf.SIMTIME)
 print("\n====== END OF SIMULATION ======")
 print("*******************************")
 print(f"\nRouter Type: {conf.SELECTED_ROUTER_TYPE}")
-if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM and conf.NR_NODES <= conf.SMALL_MESH_NUM_NODES:
-	print("'Small Mesh' correction was applied to this simulation")
 print('Number of messages created:', messageSeq["val"])
 sent = len(packets)
 if conf.DMs:
@@ -93,21 +88,6 @@ else:
 	print('No packets received.')
 delayDropped = sum(n.droppedByDelay for n in nodes)
 print("Number of packets dropped by delay/hop limit:", delayDropped)
-
-if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.BLOOM:
-	coverageDropped = sum(n.droppedByCoverage for n in nodes)
-	print("Number of packets dropped by coverage:", coverageDropped)
-	bloomRebroadcasts = sum(n.rebroadcastPackets for n in nodes)
-	avgCoverageBeforeDrop = 0
-	if bloomRebroadcasts > 0:
-		avgCoverageBeforeDrop = float(sum(n.coverageBeforeDrop for n in nodes)) / float(bloomRebroadcasts)
-	print('Average Nodes in Coverage Filter Before Drop:', round(avgCoverageBeforeDrop, 2))
-	estimatedCoverageFPR = (1 - (1 - 1/conf.BLOOM_FILTER_SIZE_BITS)**(2 * avgCoverageBeforeDrop))**2
-	print("Est. FPR From Bloom Saturation:", round(estimatedCoverageFPR*100, 2), '%')
-	coverageFp = sum([n.coverageFalsePositives for n in nodes])
-	print("I think I can cover this node, but I can't:", round(coverageFp / potentialReceivers * 100, 2), '%')
-	coverageFn = sum([n.coverageFalseNegatives for n in nodes])
-	print("I don't think I can cover this node, but I can:", round(coverageFn / potentialReceivers * 100, 2), '%')
 
 if conf.MODEL_ASYMMETRIC_LINKS == True:
 	print("Asymmetric links:", round(asymmetricLinks / totalPairs * 100, 2), '%')

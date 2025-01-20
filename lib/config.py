@@ -5,7 +5,6 @@ class Config:
 
     class ROUTER_TYPE(Enum):
         MANAGED_FLOOD = 'MANAGED_FLOOD'
-        BLOOM = 'BLOOM'
 
     def __init__(self):
         self.MODEL = 5  # Pathloss model to use (see README)
@@ -89,36 +88,6 @@ class Config:
         ####### SET ROUTER TYPE ABOVE ########
         ######################################
 
-        ##################################################
-        ####### BLOOM ROUTER SIMULATION VARIABLES ########
-        ##################################################
-
-        # Shrink this down to accomodate a 4 byte node id for relay_node
-        # relay_node takes 4 bytes (prev 1 byte), so the expanded header
-        # can only fit 16 - 3 = 13 bytes for the bloom filter
-        self.BLOOM_FILTER_SIZE_BYTES = 13
-        self.BLOOM_FILTER_SIZE_BITS = self.BLOOM_FILTER_SIZE_BYTES * 8
-        # When bloom router is enabled, this is how many hops will be used
-        self.BLOOM_HOPS = 15
-        # This will scale up the impact of the coverage 
-        # ratio on probability of rebroadcast
-        self.COVERAGE_RATIO_SCALE_FACTOR = 1.3
-        # The absolute minimum rebroadcast probability under any circumstances
-        self.BASELINE_REBROADCAST_PROBABILITY = 0.0
-        # This is probabiliy of rebroadcast if we have 0 known neighbors (high uncertainty)
-        self.UNKNOWN_COVERAGE_REBROADCAST_PROBABILITY = .3
-        # The bloom router performs poorly with small, volatile networks
-        # this is the threshold under which we disable the bloom router and reset hops to 3
-        self.SMALL_MESH_NUM_NODES = 30
-        # Maximum number of immediate neighbors that can be added per hop
-        self.MAX_NEIGHBORS_PER_HOP = 20
-        # Convenience illustration of the probability functions we could use
-        # This has no bearing on the simulation itself
-        self.SHOW_PROBABILITY_FUNCTION_COMPARISON = False
-        # How long does an immediate neighbor remain in our coverage knowledge before aging out
-        # If SIMTIME is less than this, nodes will never fully age out of coverage
-        self.RECENCY_THRESHOLD = 2 * self.ONE_HR_INTERVAL
-
         #####################################################
         ####### ASYMMETRIC LINK SIMULATION VARIABLES ########
         #####################################################
@@ -157,14 +126,7 @@ class Config:
 
     # Function that needs to be run to ensure the router dependent variables change appropriately
     def updateRouterDependencies(self):
-        # Overwrite hop limit in the case of Bloom routing
-        if self.SELECTED_ROUTER_TYPE == self.ROUTER_TYPE.BLOOM:
-            if self.NR_NODES <= self.SMALL_MESH_NUM_NODES:
-                self.hopLimit = 3
-                self.HEADERLENGTH = 16
-                print("\n`Small Mesh` detected, reverting to 3 hops, 16-byte header")
-                return
-            else:
-                self.hopLimit = self.BLOOM_HOPS
-                self.HEADERLENGTH = 32
-                print(f"\nReverting back to {self.BLOOM_HOPS} hops because mesh size is > {self.SMALL_MESH_NUM_NODES}")
+        # Example: Overwrite hop limit in the case of X new awesome routing algorithm
+        #if self.SELECTED_ROUTER_TYPE == self.ROUTER_TYPE.AWESOME_ROUTER:
+            # Change config values if necessary for your router here
+        return

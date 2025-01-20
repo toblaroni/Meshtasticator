@@ -97,7 +97,7 @@ def simulationProgress(env, currentRep, repetitions, endTime):
         yield env.timeout(10 * conf.ONE_SECOND_INTERVAL)
 
 # Add your router types here
-routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.BLOOM]
+routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD]
 
 repetitions = 3
 numberOfNodes = [40, 50, 75, 100, 200]
@@ -114,10 +114,6 @@ reachability_dict = {}
 reachabilityStds_dict = {}
 usefulness_dict = {}
 usefulnessStds_dict = {}
-
-# Coverage metrics, only used by the BLOOM router
-coverageFp_dict = {}
-coverageFn_dict = {}
 
 # If you have link asymmetry metrics
 asymmetricLinkRate_dict = {}
@@ -136,9 +132,6 @@ for rt in routerTypes:
     reachabilityStds_dict[rt] = []
     usefulness_dict[rt] = []
     usefulnessStds_dict[rt] = []
-
-    coverageFp_dict[rt] = []
-    coverageFn_dict[rt] = []
 
     asymmetricLinkRate_dict[rt] = []
     symmetricLinkRate_dict[rt] = []
@@ -310,17 +303,6 @@ for rt_i, routerType in enumerate(routerTypes):
             meanDelay[rep] = np.nanmean(delays)
             meanTxAirUtilization[rep] = sum([n.txAirUtilization for n in nodes]) / routerTypeConf.NR_NODES
 
-            # Coverage is only meaningful for BLOOM
-            if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM:
-                potentialReceivers = (len(packets) * (routerTypeConf.NR_NODES - 1))
-                if potentialReceivers > 0:
-                    coverageFp[rep] = round(
-                        sum([n.coverageFalsePositives for n in nodes]) / potentialReceivers * 100, 2
-                    )
-                    coverageFn[rep] = round(
-                        sum([n.coverageFalseNegatives for n in nodes]) / potentialReceivers * 100, 2
-                    )
-
             if routerTypeConf.MODEL_ASYMMETRIC_LINKS:
                 asymmetricLinkRate[rep] = round(asymmetricLinks / totalPairs * 100, 2)
                 symmetricLinkRate[rep] = round(symmetricLinks / totalPairs * 100, 2)
@@ -373,18 +355,12 @@ for rt_i, routerType in enumerate(routerTypes):
             subdir = "hopLimit3"
             simReport(routerTypeConf, data, subdir, nrNodes)
 
-        if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM and routerTypeConf.NR_NODES <= routerTypeConf.SMALL_MESH_NUM_NODES:
-            print("'Small Mesh' correction was applied to this simulation")
-
         # Print summary
         print('Collision rate average:', round(np.nanmean(collisionRate), 2))
         print('Reachability average:', round(np.nanmean(nodeReach), 2))
         print('Usefulness average:', round(np.nanmean(nodeUsefulness), 2))
         print('Delay average:', round(np.nanmean(meanDelay), 2))
         print('Tx air utilization average:', round(np.nanmean(meanTxAirUtilization), 2))
-        if routerTypeConf.SELECTED_ROUTER_TYPE == routerTypeConf.ROUTER_TYPE.BLOOM:
-            print("Coverage false positives:", round(np.nanmean(coverageFp), 2))
-            print("Coverage false negatives:", round(np.nanmean(coverageFn), 2))
         if routerTypeConf.MODEL_ASYMMETRIC_LINKS:
             print('Asymmetric Links:', round(np.nanmean(asymmetricLinkRate), 2))
             print('Symmetric Links:', round(np.nanmean(symmetricLinkRate), 2))
@@ -415,8 +391,6 @@ for rt_i, routerType in enumerate(routerTypes):
 def router_type_label(rt):
     if rt == conf.ROUTER_TYPE.MANAGED_FLOOD:
         return "Managed Flood"
-    elif rt == conf.ROUTER_TYPE.BLOOM:
-        return "Bloom"
     else:
         return str(rt)
 

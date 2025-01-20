@@ -358,30 +358,5 @@ class MeshNode():
                             pNew.hopLimit = p.hopLimit-1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
-                    # BloomRouter: rebroadcast received packet
-                    elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.BLOOM:
-                        self.verboseprint('Packet', p.seq, 'received at node', self.nodeid, 'with coverage', p.coverageFilter)
-                        pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint, p.coverageFilter, p.totalNodesInCoverageFilter)
-                        pNew.hopLimit = p.hopLimit-1
-
-                        # Record how far off our coverage knowledge is from actual coverage
-                        (fp, fn) = pNew.getPacketCoverageDifference(self.nodes)
-                        self.coverageFalsePositives += fp
-                        self.coverageFalseNegatives += fn
-
-                        rebroadcastProbability = pNew.getRebroadcastProbability()
-
-                        rebroadcastProbabilityTest = self.rebroadcastRng.random()
-
-                        # Check the random against the probability
-                        if rebroadcastProbabilityTest <= rebroadcastProbability:
-                            self.rebroadcastPackets += 1
-                            self.packets.append(pNew)
-                            self.env.process(self.transmit(pNew))
-                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
-                        else:
-                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'drops received packet due to coverage', p.seq, 'New Coverage:', pNew.additionalCoverageRatio, 'Rnd:', rebroadcastProbabilityTest, 'Prob:', rebroadcastProbability)
-                            self.droppedByCoverage += 1
-                            self.coverageBeforeDrop += p.totalNodesInCoverageFilter
                 else:
                     self.droppedByDelay += 1
