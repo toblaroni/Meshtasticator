@@ -50,13 +50,7 @@ class MeshNode():
         self.txAirUtilization = 0
         self.airUtilization = 0
         self.droppedByDelay = 0
-        self.droppedByCoverage = 0
-        self.coverageBeforeDrop = 0
         self.rebroadcastPackets = 0
-        self.coverageFalsePositives = 0
-        self.coverageFalseNegatives = 0
-        self.coverageKnowledge = set()
-        self.lastHeardTime = {}
         self.isMoving = False
         self.gpsEnabled = False
         # Track last broadcast position/time
@@ -115,22 +109,6 @@ class MeshNode():
         # 6 intervals, each 10 seconds = 60,000 ms total
         # fraction = sum_ms / 60000, then multiply by 100 for percent
         return (sumMs / (self.conf.CHANNEL_UTILIZATION_PERIODS * self.conf.TEN_SECONDS_INTERVAL)) * 100.0
-
-    def updateCoverageKnowledge(self, neighbor_id):
-        self.coverageKnowledge.add(neighbor_id)
-        self.lastHeardTime[neighbor_id] = self.env.now
-
-    def removeStaleNodes(self):
-        # remove nodes we haven't been heard from in X seconds
-        for n in list(self.coverageKnowledge):
-            if (self.env.now - self.lastHeardTime[n]) > self.conf.RECENCY_THRESHOLD:
-                self.coverageKnowledge.remove(n)
-                del self.lastHeardTime[n]
-
-    def getCoverageKnowledge(self):
-        # force a stale cleanup first
-        self.removeStaleNodes()
-        return self.coverageKnowledge
 
     def moveNode(self, env):
         while True:
@@ -304,9 +282,6 @@ class MeshNode():
                 p.receivedAtN[self.nodeid] = True
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
                 self.delays.append(self.env.now-p.genTime)
-
-                # Update knowledge of node based on reception of packet
-                self.updateCoverageKnowledge(p.txNodeId)
 
                 # update hopLimit for this message
                 if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.

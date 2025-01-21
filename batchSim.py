@@ -210,8 +210,6 @@ for rt_i, routerType in enumerate(routerTypes):
     reachabilityStds = []
     usefulness = []
     usefulnessStds = []
-    coverageFpAll = []
-    coverageFnAll = []
     asymmetricLinkRateAll = []
     symmetricLinkRateAll = []
     noLinkRateAll = []
@@ -224,8 +222,6 @@ for rt_i, routerType in enumerate(routerTypes):
         collisionRate = [0 for _ in range(repetitions)]
         meanDelay = [0 for _ in range(repetitions)]
         meanTxAirUtilization = [0 for _ in range(repetitions)]
-        coverageFp = [0 for _ in range(repetitions)]
-        coverageFn = [0 for _ in range(repetitions)]
         asymmetricLinkRate = [0 for _ in range(repetitions)]
         symmetricLinkRate = [0 for _ in range(repetitions)]
         noLinkRate = [0 for _ in range(repetitions)]
@@ -333,8 +329,6 @@ for rt_i, routerType in enumerate(routerTypes):
         delayStds.append(np.nanstd(meanDelay))
         meanTxAirUtils.append(np.nanmean(meanTxAirUtilization))
         txAirUtilsStds.append(np.nanstd(meanTxAirUtilization))
-        coverageFpAll.append(np.nanmean(coverageFp))
-        coverageFnAll.append(np.nanmean(coverageFn))
         asymmetricLinkRateAll.append(np.nanmean(asymmetricLinkRate))
         symmetricLinkRateAll.append(np.nanmean(symmetricLinkRate))
         noLinkRateAll.append(np.nanmean(noLinkRate))
@@ -392,8 +386,6 @@ for rt_i, routerType in enumerate(routerTypes):
     delayStds_dict[routerType] = delayStds
     meanTxAirUtils_dict[routerType] = meanTxAirUtils
     txAirUtilsStds_dict[routerType] = txAirUtilsStds
-    coverageFp_dict[routerType] = coverageFpAll
-    coverageFn_dict[routerType] = coverageFnAll
     asymmetricLinkRate_dict[routerType] = asymmetricLinkRateAll
     symmetricLinkRate_dict[routerType] = symmetricLinkRateAll
     noLinkRate_dict[routerType] = noLinkRateAll
