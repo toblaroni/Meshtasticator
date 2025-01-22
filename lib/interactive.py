@@ -10,12 +10,13 @@ from matplotlib import patches
 from meshtastic import tcp_interface, BROADCAST_NUM, mesh_pb2, admin_pb2, telemetry_pb2, portnums_pb2, channel_pb2
 from pubsub import pub
 
-from . import config as conf
+from lib.config import Config
 from .common import *
 
 # TODO: Fix mixed indentation!
 #       Some parts of the file use tabs, some parts user 2 spaces, and some parts use 4 spaces.
 
+conf = Config()
 HW_ID_OFFSET = 16
 TCP_PORT_OFFSET = 4403
 TCP_PORT_CLIENT = 4402
@@ -37,7 +38,7 @@ class interactiveNode():
       self.antennaGain = nodeConfig['antennaGain']
       self.neighborInfo = nodeConfig['neighborInfo']
     else: 
-      self.x, self.y = findRandomPosition(nodes)
+      self.x, self.y = findRandomPosition(conf, nodes)
       self.z = conf.HM
       self.isRouter = conf.router
       self.isRepeater = False
@@ -492,7 +493,7 @@ class interactiveSim():
       config = [None for _ in range(conf.NR_NODES)]
     if not foundNodes:
       print("nrNodes was not specified, generating scenario...")
-      config = genScenario()
+      config = genScenario(conf)
       conf.NR_NODES = len(config.keys())
     pathToProgram = args.program
     return config, pathToProgram
@@ -761,7 +762,7 @@ class interactiveSim():
     snrs = []
     for rx in receivers:
       dist_3d = calcDist(tx.x, rx.x, tx.y, rx.y, tx.z, rx.z) 
-      pathLoss = phy.estimatePathLoss(dist_3d, conf.FREQ, tx.z, rx.z)
+      pathLoss = phy.estimatePathLoss(conf, dist_3d, conf.FREQ, tx.z, rx.z)
       RSSI = conf.PTX + tx.antennaGain + rx.antennaGain - pathLoss
       SNR = RSSI-conf.NOISE_LEVEL
       if RSSI >= conf.SENSMODEM[conf.MODEM]:

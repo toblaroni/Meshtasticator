@@ -3,10 +3,7 @@ import os
 import pandas as pd
 import simpy
 
-from . import config as conf
-
-
-def simReport(data, subdir, param):
+def simReport(conf, data, subdir, param):
 	fname = "simReport_{}_{}.csv".format(conf.MODEM, param)
 	if not os.path.isdir(os.path.join("out", "report", subdir)):
 		if not os.path.isdir("out"):

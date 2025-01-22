@@ -3,15 +3,16 @@ import random
 
 from scipy.optimize import fsolve
 
-from . import config as conf
+from lib.config import Config
+
+conf = Config()
 
 VERBOSE = False
-random.seed(conf.SEED)
 #                           CAD duration   +     airPropagationTime+TxRxTurnaround+MACprocessing
 slotTime = 8.5 * (2.0**conf.SFMODEM[conf.MODEM])/conf.BWMODEM[conf.MODEM]*1000 + 0.2 + 0.4 + 7
 
 
-def checkcollision(env, packet, rx_nodeId, packetsAtN):
+def checkcollision(conf, env, packet, rx_nodeId, packetsAtN):
 	# Check for collisions at rx_node
 	col = 0
 	if conf.COLLISION_DUE_TO_INTERFERENCE:
@@ -21,7 +22,7 @@ def checkcollision(env, packet, rx_nodeId, packetsAtN):
 	if packetsAtN[rx_nodeId]:
 		for other in packetsAtN[rx_nodeId]:
 			if frequencyCollision(packet, other) and sfCollision(packet, other):
-					if timingCollision(env, packet, other):
+					if timingCollision(conf, env, packet, other):
 						verboseprint('Packet nr.', packet.seq, 'from', packet.txNodeId, 'and packet nr.', other.seq, 'from', other.txNodeId, 'will collide!')
 						c = powerCollision(packet, other, rx_nodeId)
 							# mark all the collided packets
@@ -65,7 +66,7 @@ def powerCollision(p1, p2, rx_nodeId):
 	return (p2,)
 
 
-def timingCollision(env, p1, p2):
+def timingCollision(conf, env, p1, p2):
 	""" assuming p1 is the freshly arrived packet and this is the last check
 		we've already determined that p1 is a weak packet, so the only
 		way we can win is by being late enough (only the first n - 5 preamble symbols overlap)
@@ -78,7 +79,7 @@ def timingCollision(env, p1, p2):
 
 
 def isChannelActive(node, env):
-    if random.randrange(10) <= conf.INTERFERENCE_LEVEL*10:
+    if random.randrange(10) <= node.conf.INTERFERENCE_LEVEL*10:
         return True
     for p in node.packets:
         if p.detectedByN[node.nodeid]: 
@@ -88,7 +89,7 @@ def isChannelActive(node, env):
     return False
 
 
-def airtime(sf, cr, pl, bw):
+def airtime(conf, sf, cr, pl, bw):
     pl = pl + conf.HEADERLENGTH  # add Meshtastic header length
     H = 0  # implicit header disabled (H=0) or not (H=1)
     DE = 0  # low data rate optimization enabled (=1) or not (=0)
@@ -106,7 +107,11 @@ def airtime(sf, cr, pl, bw):
     return (Tpream + Tpayload)*1000
 
 
-def estimatePathLoss(dist, freq, txZ=conf.HM, rxZ=conf.HM):
+def estimatePathLoss(conf, dist, freq, txZ=conf.HM, rxZ=conf.HM):
+	# With randomized movements we may end up on top of another node
+	# which is problematic for log(dist)
+    dist = max(dist, .001)
+	
     # Log-Distance model
     if conf.MODEL == 0: 
         Lpl = conf.LPLD0 + 10*conf.GAMMA*math.log10(dist/conf.D0)
@@ -163,7 +168,7 @@ def estimatePathLoss(dist, freq, txZ=conf.HM, rxZ=conf.HM):
     return Lpl
 
 def zeroLinkBudget(dist):
-    return conf.PTX + 2*conf.GL - estimatePathLoss(dist, conf.FREQ) - conf.SENSMODEM[conf.MODEM]
+    return conf.PTX + 2*conf.GL - estimatePathLoss(conf, dist, conf.FREQ) - conf.SENSMODEM[conf.MODEM]
 
 
 MAXRANGE = fsolve(zeroLinkBudget, 1500)
