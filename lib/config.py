@@ -68,7 +68,7 @@ class Config:
 
         # Misc
         self.SEED = 44  # random seed to use
-        self.PLOT = False
+        self.PLOT = True
         self.RANDOM = False
         # End of misc
 

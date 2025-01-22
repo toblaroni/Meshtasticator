@@ -454,7 +454,6 @@ plt.xlabel('#nodes')
 plt.ylabel('Collision rate (%)')
 plt.legend()
 plt.title('Collision Rate by Router Type (with % Diff Annotations)')
-plt.show()
 
 ###########################################################
 # 2) Average Delay (with annotations)
@@ -495,7 +494,6 @@ plt.xlabel('#nodes')
 plt.ylabel('Average delay (ms)')
 plt.legend()
 plt.title('Average Delay by Router Type (with % Diff Annotations)')
-plt.show()
 
 ###########################################################
 # 3) Average Tx air utilization (with annotations)
@@ -534,7 +532,6 @@ plt.xlabel('#nodes')
 plt.ylabel('Average Tx air utilization (ms)')
 plt.legend()
 plt.title('Tx Air Utilization by Router Type (with % Diff Annotations)')
-plt.show()
 
 ###########################################################
 # 4) Reachability (with annotations)
@@ -573,7 +570,6 @@ plt.xlabel('#nodes')
 plt.ylabel('Reachability (%)')
 plt.legend()
 plt.title('Reachability by Router Type (with % Diff Annotations)')
-plt.show()
 
 ###########################################################
 # 5) Usefulness (with annotations)
@@ -612,4 +608,8 @@ plt.xlabel('#nodes')
 plt.ylabel('Usefulness (%)')
 plt.legend()
 plt.title('Usefulness by Router Type (with % Diff Annotations)')
+
+###########################################################
+# 6) Show all the plots at once
+###########################################################
 plt.show()

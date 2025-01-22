@@ -1,4 +1,3 @@
-import math
 import os
 import random
 
@@ -7,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from matplotlib.widgets import Button, Slider, RadioButtons, TextBox
-from lib.config import Config
 from . import phy
 
 try:

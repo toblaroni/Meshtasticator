@@ -4,7 +4,6 @@ import socket
 import sys
 import threading
 import time
-import base64
 
 import google.protobuf.json_format as proto
 from matplotlib import patches
