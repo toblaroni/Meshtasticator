@@ -346,8 +346,8 @@ class Graph():
 
 			# 1) Update the marker
 			marker = self.node_markers[node_id]
-			marker.set_xdata(node.x)
-			marker.set_ydata(node.y)
+			marker.set_xdata([node.x])
+			marker.set_ydata([node.y])
 
 			# 2) Update the circle center
 			circle = self.node_circles[node_id]
