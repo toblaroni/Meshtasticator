@@ -9,7 +9,7 @@ To start one simulation with the default configurations, run:
 
 ```python3 loraMesh.py [nr_nodes]``` 
 
-If no argument is given, you first have to place the nodes on a plot. After you place a node, you can optionally set the node as Router, change its hopLimit, height (elevation) and antenna gain. These settings will automatically save when you place a new node or when you start the simulation.
+If no argument is given, you first have to place the nodes on a plot. After you place a node, you can change its [role](https://meshtastic.org/docs/settings/config/device#role), hopLimit, height (elevation) and antenna gain. These settings will automatically save when you place a new node or when you start the simulation.
 
 ![](/img/configNode.png)
 
