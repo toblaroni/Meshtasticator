@@ -147,7 +147,7 @@ class interactivePacket():
 
 class interactiveGraph(Graph):
   def __init__(self):
-    super().__init__()
+    super().__init__(conf)
     self.routes = False
 
 
