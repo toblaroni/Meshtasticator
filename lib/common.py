@@ -14,9 +14,9 @@ except ImportError:
 	print('Tkinter is needed. Install python3-tk with your package manager.')
 	exit(1)
 
-
+### Use argparser??
 def getParams(conf, args):
-	if len(args) > 3:
+	if len(args) > 5:
 		print("Usage: ./loraMesh [nr_nodes] [--from-file [file_name]]")
 		print("Do not specify the number of nodes when reading from a file.")
 		exit(1)
@@ -35,7 +35,7 @@ def getParams(conf, args):
 				if len(args) > 2:
 					try:
 						# Attempt to convert the string args[2] into a valid enum member
-						routerType = conf.ROUTER_TYPE(args[2])
+						routerType = conf.ROUTER_TYPE(args[2])		# Attempts to get router_type from args??
 						conf.SELECTED_ROUTER_TYPE = routerType
 						conf.updateRouterDependencies()
 					except ValueError:
@@ -44,6 +44,21 @@ def getParams(conf, args):
 						print(f"Invalid router type: {args[2]}")
 						print(f"Router type must be one of: {', '.join(valid_types)}")
 						exit(1)
+					if routerType == conf.ROUTER_TYPE.GOSSIP:
+						try:
+							conf.pBroadcast = int(args[3])
+							conf.initialHops = int(args[4])
+							if conf.pBroadcast <= 0 or conf.pBroadcast > 1:
+								print("Invalid value for GOSSIP probability. Expected (0, 1]")
+								exit(1)
+							if conf.initialHops < 0:
+								print("Value for initial hops must be positive")
+								exit(1)
+							print(conf.pBroadcast, conf.initialHops)
+						except IndexError:
+							print("GOSSIP Routing Usage: ./loraMesh [nr_nodes] GOSSIP [probability] [number_of_inital_hops]")
+							exit(1)
+						
 				if conf.NR_NODES == -1:
 					config = genScenario(conf)
 		else: 

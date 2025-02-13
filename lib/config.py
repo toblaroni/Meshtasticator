@@ -5,6 +5,7 @@ class Config:
 
     class ROUTER_TYPE(Enum):
         MANAGED_FLOOD = 'MANAGED_FLOOD'
+        GOSSIP = 'GOSSIP'
 
     def __init__(self):
         self.MODEL = 5  # Pathloss model to use (see README)
@@ -74,6 +75,10 @@ class Config:
 
         # Initializers
         self.NR_NODES = None
+
+        # GOSSIP init
+        self.pBroadcast = None # Probability that the node broadcasts the message
+        self.initialHops = None # Number of initial broadcasts with probability = 1 (k)
         # End of initializers 
 
         ######################################
@@ -129,4 +134,6 @@ class Config:
         # Example: Overwrite hop limit in the case of X new awesome routing algorithm
         #if self.SELECTED_ROUTER_TYPE == self.ROUTER_TYPE.AWESOME_ROUTER:
             # Change config values if necessary for your router here
+        if self.SELECTED_ROUTER_TYPE == self.ROUTER_TYPE.GOSSIP:
+            self.hopLimit = None    # No limit
         return

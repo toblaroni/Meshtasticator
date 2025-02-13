@@ -19,9 +19,9 @@ else:
 	def verboseprint(*args, **kwargs): 
 		pass
 
-nodeConfig = getParams(conf, sys.argv)
+nodeConfig = getParams(conf, sys.argv)		# argv[2] specifies the router type...
 conf.updateRouterDependencies()
-env = simpy.Environment()
+env = simpy.Environment()	# Contains all info about the simulation
 bc_pipe = BroadcastPipe(env)
 
 # simulation variables
