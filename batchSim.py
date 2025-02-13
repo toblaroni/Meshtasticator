@@ -8,7 +8,6 @@ try:
 except ImportError:
     print('Tkinter is needed. Install python3-tk with your package manager.')
     exit(1)
-
 import simpy
 import numpy as np
 import random

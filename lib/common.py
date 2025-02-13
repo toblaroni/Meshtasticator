@@ -46,7 +46,7 @@ def getParams(conf, args):
 						exit(1)
 					if routerType == conf.ROUTER_TYPE.GOSSIP:
 						try:
-							conf.pBroadcast = int(args[3])
+							conf.pBroadcast = float(args[3])
 							conf.initialHops = int(args[4])
 							if conf.pBroadcast <= 0 or conf.pBroadcast > 1:
 								print("Invalid value for GOSSIP probability. Expected (0, 1]")

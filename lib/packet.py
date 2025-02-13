@@ -13,7 +13,7 @@ class MeshPacket():
 		self.wantAck = wantAck
 		self.isAck = isAck
 		self.seq = seq
-		self.requestId = requestId
+		self.requestId = requestId	## This is for ACKs (For identifying original message)
 		self.genTime = genTime
 		self.now = now
 		self.txpow = self.conf.PTX
@@ -52,6 +52,8 @@ class MeshPacket():
 		self.retransmissions = self.conf.maxRetransmission
 		self.ackReceived = False
 		self.hopLimit = self.tx_node.hopLimit
+
+		self.hopCount = 0	# Necessary for GOSSIP
 
 class MeshMessage():
 	def __init__(self, origTxNodeId, destId, genTime, seq):

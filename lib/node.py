@@ -32,21 +32,24 @@ class MeshNode():
             self.isClientMute = False
             self.hopLimit = self.conf.hopLimit
             self.antennaGain = self.conf.GL
-        self.messageSeq = messageSeq
+        # messageSeq: Dict { 'val': <num> }
+        # Everytime a packet gets sent the messageSeq of the node gets incremented
+        # This Dict is **shared** across all nodes so that messages have unique IDs...
+        self.messageSeq = messageSeq    
         self.env = env
         self.period = period
         self.bc_pipe = bc_pipe
         self.rx_snr = 0
         self.nodes = nodes
-        self.messages = messages
+        self.messages = messages    # Messages **this** node has sent
         self.packetsAtN = packetsAtN
         self.nrPacketsSent = 0
         self.packets = packets
         self.delays = delays
-        self.leastReceivedHopLimit = {}
+        self.leastReceivedHopLimit = {} # Keeps track of requests (for this node) with the lowest hop (for ACKs)
         self.isReceiving = []
         self.isTransmitting = False
-        self.usefulPackets = 0
+        self.usefulPackets = 0  # What is this..?
         self.txAirUtilization = 0
         self.airUtilization = 0
         self.droppedByDelay = 0
@@ -61,6 +64,10 @@ class MeshNode():
         self.channelUtilization = [0]*self.conf.CHANNEL_UTILIZATION_PERIODS  # each entry is ms spent on air in that interval
         self.channelUtilizationIndex = 0  # which "bucket" is current
         self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
+
+        # GOSSIP
+        # We need to keep track of which messages we've seen. 
+        self.seen_packets = set()
 
         env.process(self.trackChannelUtilization(env))
         if not self.isRepeater:  # repeaters don't generate messages themselves
@@ -162,9 +169,12 @@ class MeshNode():
         self.messageSeq["val"] += 1
         messageSeq = self.messageSeq["val"]
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
-        p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
-        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
+        if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.GOSSIP:
+            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, False, False, None, self.env.now, self.verboseprint)
+        else:
+            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
         self.packets.append(p)
+        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
         self.env.process(self.transmit(p))
         return p
 
@@ -189,7 +199,7 @@ class MeshNode():
                     destId = NODENUM_BROADCAST
 
                 p = self.sendPacket(destId)
-
+                
                 while p.wantAck: # ReliableRouter: retransmit message if no ACK received after timeout 
                     retransmissionMsec = getRetransmissionMsec(self, p) 
                     yield self.env.timeout(retransmissionMsec)
@@ -231,31 +241,44 @@ class MeshNode():
             # wait when currently receiving or transmitting, or channel is active
             while any(self.isReceiving) or self.isTransmitting or isChannelActive(self, self.env):
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'is busy Tx-ing', self.isTransmitting, 'or Rx-ing', any(self.isReceiving), 'else channel busy!')
-                txTime = setTransmitDelay(self, packet) 
+                txTime = setTransmitDelay(self, packet)     # txTime = back off time
                 yield self.env.timeout(txTime)
             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
-            # check if you received an ACK for this message in the meantime
-            if packet.seq not in self.leastReceivedHopLimit:
-                self.leastReceivedHopLimit[packet.seq] = packet.hopLimit+1 
-            if self.leastReceivedHopLimit[packet.seq] > packet.hopLimit:  # no ACK received yet, so may start transmitting 
-                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)
-                self.nrPacketsSent += 1
-                for rx_node in self.nodes:
-                    if packet.sensedByN[rx_node.nodeid] == True:
-                        if (checkcollision(self.conf, self.env, packet, rx_node.nodeid, self.packetsAtN) == 0):
-                            self.packetsAtN[rx_node.nodeid].append(packet)
-                packet.startTime = self.env.now
-                packet.endTime = self.env.now + packet.timeOnAir
-                self.txAirUtilization += packet.timeOnAir
-                self.airUtilization += packet.timeOnAir
-                self.bc_pipe.put(packet)
-                self.isTransmitting = True
-                yield self.env.timeout(packet.timeOnAir)
-                self.isTransmitting = False
-            else:  # received ACK: abort transmit, remove from packets generated 
-                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
-                self.packets.remove(packet)
+            if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  
+                if packet.requestId != None and packet.requestId in self.seen_packets:  # Hop-Limits not used
+                    self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
+                    self.packets.remove(packet)
+                    return
+                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'original Tx', packet.origTxNodeId)
+            else:   # Non-GOSSIP routing
+                # check if you received an ACK for this message in the meantime
+                if packet.seq not in self.leastReceivedHopLimit:
+                    self.leastReceivedHopLimit[packet.seq] = packet.hopLimit+1 
+
+                if self.leastReceivedHopLimit[packet.seq] > packet.hopLimit:
+                    # no ACK received yet, so may start transmitting 
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)
+                else:  # received ACK: abort transmit, remove from packets generated 
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
+                    self.packets.remove(packet)
+                    return
+
+            # Transmit
+            self.nrPacketsSent += 1
+            for rx_node in self.nodes:
+                if packet.sensedByN[rx_node.nodeid] == True:
+                    if (checkcollision(self.conf, self.env, packet, rx_node.nodeid, self.packetsAtN) == 0):
+                        self.packetsAtN[rx_node.nodeid].append(packet)
+            packet.startTime = self.env.now
+            packet.endTime = self.env.now + packet.timeOnAir
+            self.txAirUtilization += packet.timeOnAir
+            self.airUtilization += packet.timeOnAir
+
+            self.bc_pipe.put(packet)
+            self.isTransmitting = True
+            yield self.env.timeout(packet.timeOnAir)
+            self.isTransmitting = False
 
 
     def receive(self, in_pipe):
