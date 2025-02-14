@@ -90,6 +90,7 @@ def isChannelActive(node, env):
 
 
 def airtime(conf, sf, cr, pl, bw):
+	# Calculates how much time a lora packet occupies the wireless medium
     pl = pl + conf.HEADERLENGTH  # add Meshtastic header length
     H = 0  # implicit header disabled (H=0) or not (H=1)
     DE = 0  # low data rate optimization enabled (=1) or not (=0)

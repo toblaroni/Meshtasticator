@@ -73,7 +73,7 @@ class MeshNode():
         if not self.isRepeater:  # repeaters don't generate messages themselves
             env.process(self.generateMessage())
         env.process(self.receive(self.bc_pipe.get_output_conn()))
-        self.transmitter = simpy.Resource(env, 1)
+        self.transmitter = simpy.Resource(env, 1)   # One transmitter per node?
 
         # start mobility if enabled
         if self.conf.MOVEMENT_ENABLED and self.moveRng.random() <= self.conf.APPROX_RATIO_NODES_MOVING:
@@ -178,10 +178,12 @@ class MeshNode():
         self.env.process(self.transmit(p))
         return p
 
-    def getNextTime(self, period):
+    def getNextTime(self, period):  
+        # Generates time until next message should be generated
         nextGen = self.nodeRng.expovariate(1.0/float(period))
         # do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
-        if self.env.now+nextGen+self.hopLimit*airtime(self.conf, self.conf.SFMODEM[self.conf.MODEM], self.conf.CRMODEM[self.conf.MODEM], self.conf.PACKETLENGTH, self.conf.BWMODEM[self.conf.MODEM]) < self.conf.SIMTIME:
+        # `self.hopLimit or self.conf.initalHops` => for GOSSIP packets get propagated with p=1 for initialHops
+        if self.env.now+nextGen+(self.hopLimit or self.conf.initialHops)*airtime(self.conf, self.conf.SFMODEM[self.conf.MODEM], self.conf.CRMODEM[self.conf.MODEM], self.conf.PACKETLENGTH, self.conf.BWMODEM[self.conf.MODEM]) < self.conf.SIMTIME:
             return nextGen
         return -1
 
@@ -283,6 +285,7 @@ class MeshNode():
 
     def receive(self, in_pipe):
         while True:
+            # Wait for packet to become available in Simpy pipeline
             p = yield in_pipe.get()
             if p.sensedByN[self.nodeid] and not p.collidedAtN[self.nodeid] and p.onAirToN[self.nodeid]:  # start of reception
                 if not self.isTransmitting:
