@@ -46,17 +46,17 @@ def getParams(conf, args):
 						exit(1)
 					if routerType == conf.ROUTER_TYPE.GOSSIP:
 						try:
-							conf.pBroadcast = float(args[3])
-							conf.initialHops = int(args[4])
-							if conf.pBroadcast <= 0 or conf.pBroadcast > 1:
+							conf.GOSSIP_P = float(args[3])
+							conf.GOSSIP_K = int(args[4])
+							if conf.GOSSIP_P <= 0 or conf.GOSSIP_P > 1:
 								print("Invalid value for GOSSIP probability. Expected (0, 1]")
 								exit(1)
-							if conf.initialHops < 0:
+							if conf.GOSSIP_K < 0:
 								print("Value for initial hops must be positive")
 								exit(1)
-							print(conf.pBroadcast, conf.initialHops)
-						except IndexError:
-							print("GOSSIP Routing Usage: ./loraMesh [nr_nodes] GOSSIP [probability] [number_of_inital_hops]")
+						except Exception as e:
+							print(e)
+							print("GOSSIP Routing Usage: ./loraMesh [nr_nodes] GOSSIP [probability (float)] [number_of_inital_hops (int)]")
 							exit(1)
 						
 				if conf.NR_NODES == -1:

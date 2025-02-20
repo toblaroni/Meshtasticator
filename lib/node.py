@@ -66,8 +66,8 @@ class MeshNode():
         self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
 
         # GOSSIP
-        # We need to keep track of which messages we've seen. 
-        self.seen_packets = set()
+        self.receivedImplAck = {}   # Dictionary of this nodes packets and whether we've received an implicit ACK 
+        self.seenPackets = set()    # Packets received
 
         env.process(self.trackChannelUtilization(env))
         if not self.isRepeater:  # repeaters don't generate messages themselves
@@ -169,11 +169,10 @@ class MeshNode():
         self.messageSeq["val"] += 1
         messageSeq = self.messageSeq["val"]
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
-        if conf.SELECTED_ROUTER_TYPE == conf.ROUTER_TYPE.GOSSIP:
-            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, False, False, None, self.env.now, self.verboseprint)
-        else:
-            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
+        p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
         self.packets.append(p)
+        if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
+            self.receivedImplAck[messageSeq] = False
         self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
         self.env.process(self.transmit(p))
         return p
@@ -183,7 +182,7 @@ class MeshNode():
         nextGen = self.nodeRng.expovariate(1.0/float(period))
         # do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
         # `self.hopLimit or self.conf.initalHops` => for GOSSIP packets get propagated with p=1 for initialHops
-        if self.env.now+nextGen+(self.hopLimit or self.conf.initialHops)*airtime(self.conf, self.conf.SFMODEM[self.conf.MODEM], self.conf.CRMODEM[self.conf.MODEM], self.conf.PACKETLENGTH, self.conf.BWMODEM[self.conf.MODEM]) < self.conf.SIMTIME:
+        if self.env.now+nextGen+(self.hopLimit or self.conf.GOSSIP_K)*airtime(self.conf, self.conf.SFMODEM[self.conf.MODEM], self.conf.CRMODEM[self.conf.MODEM], self.conf.PACKETLENGTH, self.conf.BWMODEM[self.conf.MODEM]) < self.conf.SIMTIME:
             return nextGen
         return -1
 
@@ -247,12 +246,12 @@ class MeshNode():
                 yield self.env.timeout(txTime)
             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
-            if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  
-                if packet.requestId != None and packet.requestId in self.seen_packets:  # Hop-Limits not used
+            if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
+                # This is mainly to prevent unnecessary retransmissions
+                if self.receivedImplAck.get(packet.seq) == True:
                     self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
                     self.packets.remove(packet)
                     return
-                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'original Tx', packet.origTxNodeId)
             else:   # Non-GOSSIP routing
                 # check if you received an ACK for this message in the meantime
                 if packet.seq not in self.leastReceivedHopLimit:
@@ -310,12 +309,17 @@ class MeshNode():
                 self.delays.append(self.env.now-p.genTime)
 
                 # update hopLimit for this message
-                if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
-                    # self.verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
-                    self.usefulPackets += 1
-                    self.leastReceivedHopLimit[p.seq] = p.hopLimit
-                if p.hopLimit < self.leastReceivedHopLimit[p.seq]:  # hop limit of received packet is lower than previously received one
-                    self.leastReceivedHopLimit[p.seq] = p.hopLimit
+                if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
+                    if p.seq not in self.seenPackets:
+                        self.usefulPackets += 1
+                        self.seenPackets.add(p.seq)
+                else: # Non GOSSIP
+                    if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
+                        # self.verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
+                        self.usefulPackets += 1
+                        self.leastReceivedHopLimit[p.seq] = p.hopLimit
+                    if p.hopLimit < self.leastReceivedHopLimit[p.seq]:  # hop limit of received packet is lower than previously received one
+                        self.leastReceivedHopLimit[p.seq] = p.hopLimit
 
                 # check if implicit ACK for own generated message
                 if p.origTxNodeId == self.nodeid:
@@ -324,6 +328,10 @@ class MeshNode():
                     else:
                         self.verboseprint('Node', self.nodeid, 'received implicit ACK on message sent.')
                     p.ackReceived = True
+
+                    if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
+                        self.receivedImplAck[p.seq] = True
+
                     continue
 
                 ackReceived = False
@@ -334,6 +342,8 @@ class MeshNode():
                         self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received implicit ACK for message in queue.')
                         ackReceived = True
                         sentPacket.ackReceived = True
+                        if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
+                            self.receivedImplAck[sentPacket.seq] = True
                     # check if real ACK for message sent
                     if sentPacket.origTxNodeId == self.nodeid and p.isAck and sentPacket.seq == p.requestId:
                         self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received real ACK.')
@@ -350,13 +360,29 @@ class MeshNode():
                     self.packets.append(pAck)
                     self.env.process(self.transmit(pAck))
                 # Rebroadcasting Logic for received message. This is a broadcast or a DM not meant for us.
-                elif not p.destId == self.nodeid and not ackReceived and not realAckReceived and p.hopLimit > 0:
+                elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.MANAGED_FLOOD:
+                    if not p.destId == self.nodeid and not ackReceived and not realAckReceived and p.hopLimit > 0:
                     # FloodingRouter: rebroadcast received packet
-                    if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.MANAGED_FLOOD:
                         if not self.isClientMute:
                             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
                             pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                             pNew.hopLimit = p.hopLimit-1
+                            self.packets.append(pNew)
+                            self.env.process(self.transmit(pNew))
+                elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
+                    if not self.isClientMute:
+                        # In GOSSIP routing we will just rebroadcast with probability 1 for k hops and p after this
+                        # Even if this node sent it originally we rebroadcast
+                        self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
+                        if p.hopCount+1 >= self.conf.GOSSIP_K: 
+                            if random.uniform(0, 1) < self.conf.GOSSIP_P:
+                                pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
+                                pNew.hopCount = p.hopCount+1
+                                self.packets.append(pNew)
+                                self.env.process(self.transmit(pNew))
+                        else:
+                            pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
+                            pNew.hopCount = p.hopCount+1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
                 else:

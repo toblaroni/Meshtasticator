@@ -77,8 +77,8 @@ class Config:
         self.NR_NODES = None
 
         # GOSSIP init
-        self.pBroadcast = None # Probability that the node broadcasts the message
-        self.initialHops = None # Number of initial broadcasts with probability = 1 (k)
+        self.GOSSIP_P = None # Probability that the node broadcasts the message
+        self.GOSSIP_K = None # Number of initial broadcasts with probability = 1 (k)
         # End of initializers 
 
         ######################################
