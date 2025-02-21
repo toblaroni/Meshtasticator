@@ -38,7 +38,7 @@ class Config:
         self.INTERFERENCE_LEVEL = 0.05  # chance that at a given moment there is already a LoRa packet being sent on your channel, 
                                 # outside of the Meshtastic traffic. Given in a ratio from 0 to 1.  
         self.COLLISION_DUE_TO_INTERFERENCE = False
-        self.DMs = True  # Set True for sending DMs (with random destination), False for broadcasts
+        self.DMs = False  # Set True for sending DMs (with random destination), False for broadcasts
         # from RadioInterface.cpp RegionInfo regions[]
         self.regions = { "US": {"freq_start": 902e6, "freq_end": 928e6, "power_limit": 30},
                     "EU433": {"freq_start": 433e6, "freq_end": 434e6, "power_limit": 12}, 
@@ -68,7 +68,7 @@ class Config:
         ### End of PHY parameters ###
 
         # Misc
-        self.SEED = 44  # random seed to use
+        self.SEED = 45  # random seed to use
         self.PLOT = True
         self.RANDOM = False
         # End of misc

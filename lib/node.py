@@ -169,10 +169,13 @@ class MeshNode():
         self.messageSeq["val"] += 1
         messageSeq = self.messageSeq["val"]
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
-        p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
-        self.packets.append(p)
+        p = None
         if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
+            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
             self.receivedImplAck[messageSeq] = False
+        else:
+            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
+        self.packets.append(p)
         self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'generated', type, 'message', p.seq, 'to', destId)
         self.env.process(self.transmit(p))
         return p
@@ -235,16 +238,18 @@ class MeshNode():
             yield request
 
             # listen-before-talk from src/mesh/RadioLibInterface.cpp 
-            txTime = setTransmitDelay(self, packet) 
-            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'picked wait time', txTime)
-            yield self.env.timeout(txTime)
+            if self.conf.SELECTED_ROUTER_TYPE != self.conf.ROUTER_TYPE.GOSSIP:
+                txTime = setTransmitDelay(self, packet) 
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'picked wait time', txTime)
+                yield self.env.timeout(txTime)
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
             # wait when currently receiving or transmitting, or channel is active
             while any(self.isReceiving) or self.isTransmitting or isChannelActive(self, self.env):
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'is busy Tx-ing', self.isTransmitting, 'or Rx-ing', any(self.isReceiving), 'else channel busy!')
                 txTime = setTransmitDelay(self, packet)     # txTime = back off time
                 yield self.env.timeout(txTime)
-            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
             if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
                 # This is mainly to prevent unnecessary retransmissions
@@ -313,6 +318,9 @@ class MeshNode():
                     if p.seq not in self.seenPackets:
                         self.usefulPackets += 1
                         self.seenPackets.add(p.seq)
+                    else:
+                        self.verboseprint('====== Already seen this packet =======')
+                        self.verboseprint('====== NOT USEFUL =======')
                 else: # Non GOSSIP
                     if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
                         # self.verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
@@ -331,7 +339,6 @@ class MeshNode():
 
                     if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
                         self.receivedImplAck[p.seq] = True
-
                     continue
 
                 ackReceived = False
@@ -373,14 +380,17 @@ class MeshNode():
                     if not self.isClientMute:
                         # In GOSSIP routing we will just rebroadcast with probability 1 for k hops and p after this
                         # Even if this node sent it originally we rebroadcast
-                        self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq)
                         if p.hopCount+1 >= self.conf.GOSSIP_K: 
                             if random.uniform(0, 1) < self.conf.GOSSIP_P:
+                                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
                                 pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                                 pNew.hopCount = p.hopCount+1
                                 self.packets.append(pNew)
                                 self.env.process(self.transmit(pNew))
+                            else:
+                                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'abandons rebroadcast.')
                         else:
+                            self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability 1')
                             pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                             pNew.hopCount = p.hopCount+1
                             self.packets.append(pNew)

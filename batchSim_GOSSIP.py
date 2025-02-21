@@ -34,13 +34,15 @@ SAVE = True
 # Add your router types here
 # This leaves room for new experimentation of 
 # different routing algorithms
-routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 
 # How many times should each combination run
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [5, 10, 15, 30, 50]
+numberOfNodes = [ 3, 5, 10, 15, 30 ]
+
+pValues = [  0.3, 0.5, 0.8 ]
+kValues = [ 1, 2, 3, 4, 5 ]
 
 
 #######################################
@@ -134,21 +136,21 @@ symmetricLinkRate_dict = {}
 noLinkRate_dict = {}
 
 # Initialize dictionaries for each router type
-for rt in routerTypes:
-    collisions_dict[rt] = []
-    collisionStds_dict[rt] = []
-    meanDelays_dict[rt] = []
-    delayStds_dict[rt] = []
-    meanTxAirUtils_dict[rt] = []
-    txAirUtilsStds_dict[rt] = []
-    reachability_dict[rt] = []
-    reachabilityStds_dict[rt] = []
-    usefulness_dict[rt] = []
-    usefulnessStds_dict[rt] = []
+for pVal in pValues:
+    collisions_dict[pVal] = []
+    collisionStds_dict[pVal] = []
+    meanDelays_dict[pVal] = []
+    delayStds_dict[pVal] = []
+    meanTxAirUtils_dict[pVal] = []
+    txAirUtilsStds_dict[pVal] = []
+    reachability_dict[pVal] = []
+    reachabilityStds_dict[pVal] = []
+    usefulness_dict[pVal] = []
+    usefulnessStds_dict[pVal] = []
 
-    asymmetricLinkRate_dict[rt] = []
-    symmetricLinkRate_dict[rt] = []
-    noLinkRate_dict[rt] = []
+    asymmetricLinkRate_dict[pVal] = []
+    symmetricLinkRate_dict[pVal] = []
+    noLinkRate_dict[pVal] = []
 
 
 
@@ -195,8 +197,8 @@ for nrNodes in numberOfNodes:
 ###########################################################
 
 # Outer loop for each router type
-for rt_i, routerType in enumerate(routerTypes):
-    routerTypeLabel = str(routerType)
+for pv_i, pVal in enumerate(pValues):
+    pValueLabel = str(pVal)
 
     # Prepare arrays for the final plot data, one per metric
     collisions = []
@@ -225,21 +227,21 @@ for rt_i, routerType in enumerate(routerTypes):
         symmetricLinkRate = [0 for _ in range(repetitions)]
         noLinkRate = [0 for _ in range(repetitions)]
 
-        print(f"\n[Router: {routerTypeLabel}] Start of {p+1} out of {len(numberOfNodes)} - {nrNodes} nodes")
+        print(f"\n[Router: {pValueLabel}] Start of {p+1} out of {len(numberOfNodes)} - {nrNodes} nodes")
 
         for rep in range(repetitions):
             # For the highest degree of separation between runs, config
             # should be instantiated every repetition for this router type and node number
             routerTypeConf = Config()
-            routerTypeConf.SELECTED_ROUTER_TYPE = routerType
+            routerTypeConf.SELECTED_ROUTER_TYPE = routerTypeConf.ROUTER_TYPE.GOSSIP
             routerTypeConf.NR_NODES = nrNodes
 
-            routerTypeConf.GOSSIP_P = 0.7
-            routerTypeConf.GOSSIP_K = 3
+            routerTypeConf.GOSSIP_P = 1
+            routerTypeConf.GOSSIP_K = 0
 
             routerTypeConf.updateRouterDependencies()
 
-            effectiveSeed = rt_i * 10000 + rep
+            effectiveSeed = pv_i * 10000 + rep
             routerTypeConf.SEED = effectiveSeed
             random.seed(effectiveSeed)
             env = simpy.Environment()
@@ -361,7 +363,7 @@ for rt_i, routerType in enumerate(routerTypes):
                 "PERIOD": routerTypeConf.PERIOD,
                 "PACKETLENGTH": routerTypeConf.PACKETLENGTH,
                 "nrMessages": messageSeq["val"],
-                "SELECTED_ROUTER_TYPE": routerTypeLabel
+                "SELECTED_ROUTER_TYPE": routerTypeConf.ROUTER_TYPE.GOSSIP
             }
             subdir = "hopLimit3"
             simReport(routerTypeConf, data, subdir, nrNodes)
@@ -379,19 +381,19 @@ for rt_i, routerType in enumerate(routerTypes):
 
     # After finishing all nrNodes for the *current* router type,
     # store these lists in the dictionary so we can plot after.
-    collisions_dict[routerType] = collisions
-    collisionStds_dict[routerType] = collisionsStds
-    reachability_dict[routerType] = reachability
-    reachabilityStds_dict[routerType] = reachabilityStds
-    usefulness_dict[routerType] = usefulness
-    usefulnessStds_dict[routerType] = usefulnessStds
-    meanDelays_dict[routerType] = meanDelays
-    delayStds_dict[routerType] = delayStds
-    meanTxAirUtils_dict[routerType] = meanTxAirUtils
-    txAirUtilsStds_dict[routerType] = txAirUtilsStds
-    asymmetricLinkRate_dict[routerType] = asymmetricLinkRateAll
-    symmetricLinkRate_dict[routerType] = symmetricLinkRateAll
-    noLinkRate_dict[routerType] = noLinkRateAll
+    collisions_dict[pVal] = collisions
+    collisionStds_dict[pVal] = collisionsStds
+    reachability_dict[pVal] = reachability
+    reachabilityStds_dict[pVal] = reachabilityStds
+    usefulness_dict[pVal] = usefulness
+    usefulnessStds_dict[pVal] = usefulnessStds
+    meanDelays_dict[pVal] = meanDelays
+    delayStds_dict[pVal] = delayStds
+    meanTxAirUtils_dict[pVal] = meanTxAirUtils
+    txAirUtilsStds_dict[pVal] = txAirUtilsStds
+    asymmetricLinkRate_dict[pVal] = asymmetricLinkRateAll
+    symmetricLinkRate_dict[pVal] = symmetricLinkRateAll
+    noLinkRate_dict[pVal] = noLinkRateAll
 
 ###########################################################
 # Plotting
@@ -406,7 +408,7 @@ def router_type_label(rt):
 ###########################################################
 # Choose a baseline router type for comparison
 ###########################################################
-baselineRt = conf.ROUTER_TYPE.MANAGED_FLOOD
+baselinePVal = 0.5
 
 ###########################################################
 # 1) Collision Rate (with annotations)
@@ -415,29 +417,29 @@ baselineRt = conf.ROUTER_TYPE.MANAGED_FLOOD
 plt.figure()
 
 # Plot all router types
-for rt in routerTypes:
+for pVal in pValues:
     plt.errorbar(
         numberOfNodes,
-        collisions_dict[rt],
-        collisionStds_dict[rt],
+        collisions_dict[pVal],
+        collisionStds_dict[pVal],
         fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5,
-        label=router_type_label(rt)
+        label=router_type_label(pVal)
     )
 
 # Now annotate differences for each router type relative to the baseline
 # We want small text near each data point
-for rt in routerTypes:
-    if rt == baselineRt:
+for pVal in pValues:
+    if pVal == baselinePVal:
         # Skip annotating differences for the baseline itself
         continue
 
     for i, n in enumerate(numberOfNodes):
-        base_val = collisions_dict[baselineRt][i]
-        rt_val   = collisions_dict[rt][i]
+        base_val = collisions_dict[baselinePVal][i]
+        pv_val   = collisions_dict[pVal][i]
 
         # Compute percentage difference relative to baseline
         if base_val != 0:
-            pct_diff = 100.0 * (rt_val - base_val) / base_val
+            pct_diff = 100.0 * (pv_val - base_val) / base_val
         else:
             pct_diff = 0.0
 
@@ -447,7 +449,7 @@ for rt in routerTypes:
 
         plt.text(
             n + x_offset, 
-            rt_val + y_offset, 
+            pv_val + y_offset, 
             f'{pct_diff:.1f}%', 
             ha='center', 
             fontsize=8
@@ -456,7 +458,7 @@ for rt in routerTypes:
 plt.xlabel('#nodes')
 plt.ylabel('Collision rate (%)')
 plt.legend()
-plt.title('Collision Rate by Router Type (with % Diff Annotations)')
+plt.title('Collision Rate by Value of P (with % Diff Annotations)')
 
 ###########################################################
 # 2) Average Delay (with annotations)
@@ -464,30 +466,30 @@ plt.title('Collision Rate by Router Type (with % Diff Annotations)')
 
 plt.figure()
 
-for rt in routerTypes:
+for pVal in pValues:
     plt.errorbar(
         numberOfNodes,
-        meanDelays_dict[rt],
-        delayStds_dict[rt],
+        meanDelays_dict[pVal],
+        delayStds_dict[pVal],
         fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5,
-        label=router_type_label(rt)
+        label=router_type_label(pVal)
     )
 
 # Annotate differences (relative to baseline) at each data point
-for rt in routerTypes:
-    if rt == baselineRt:
+for pVal in pValues:
+    if pVal == baselinePVal:
         continue
 
     for i, n in enumerate(numberOfNodes):
-        base_val = meanDelays_dict[baselineRt][i]
-        rt_val   = meanDelays_dict[rt][i]
+        base_val = meanDelays_dict[baselinePVal][i]
+        pv_val   = meanDelays_dict[pVal][i]
         if base_val != 0:
-            pct_diff = 100.0 * (rt_val - base_val) / base_val
+            pct_diff = 100.0 * (pv_val - base_val) / base_val
         else:
             pct_diff = 0.0
 
         plt.text(
-            n, rt_val + 5,  # a small offset in the y-axis
+            n, pv_val + 5,  # a small offset in the y-axis
             f'{pct_diff:.1f}%', 
             ha='center', 
             fontsize=8
@@ -496,36 +498,36 @@ for rt in routerTypes:
 plt.xlabel('#nodes')
 plt.ylabel('Average delay (ms)')
 plt.legend()
-plt.title('Average Delay by Router Type (with % Diff Annotations)')
+plt.title('Average Delay by Value of P (with % Diff Annotations)')
 
 ###########################################################
 # 3) Average Tx air utilization (with annotations)
 ###########################################################
 
 plt.figure()
-for rt in routerTypes:
+for pVal in pValues:
     plt.errorbar(
         numberOfNodes,
-        meanTxAirUtils_dict[rt],
-        txAirUtilsStds_dict[rt],
+        meanTxAirUtils_dict[pVal],
+        txAirUtilsStds_dict[pVal],
         fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5,
-        label=router_type_label(rt)
+        label=router_type_label(pVal)
     )
 
-for rt in routerTypes:
-    if rt == baselineRt:
+for pVal in pValues:
+    if pVal == baselinePVal:
         continue
 
     for i, n in enumerate(numberOfNodes):
-        base_val = meanTxAirUtils_dict[baselineRt][i]
-        rt_val   = meanTxAirUtils_dict[rt][i]
+        base_val = meanTxAirUtils_dict[pVal][i]
+        pv_val   = meanTxAirUtils_dict[pVal][i]
         if base_val != 0:
-            pct_diff = 100.0 * (rt_val - base_val) / base_val
+            pct_diff = 100.0 * (pv_val - base_val) / base_val
         else:
             pct_diff = 0.0
 
         plt.text(
-            n, rt_val + 1,  # small offset
+            n, pv_val + 1,  # small offset
             f'{pct_diff:.1f}%', 
             ha='center', 
             fontsize=8
@@ -534,36 +536,36 @@ for rt in routerTypes:
 plt.xlabel('#nodes')
 plt.ylabel('Average Tx air utilization (ms)')
 plt.legend()
-plt.title('Tx Air Utilization by Router Type (with % Diff Annotations)')
+plt.title('Tx Air Utilization by P Value (with % Diff Annotations)')
 
 ###########################################################
 # 4) Reachability (with annotations)
 ###########################################################
 
 plt.figure()
-for rt in routerTypes:
+for pVal in pValues:
     plt.errorbar(
         numberOfNodes,
-        reachability_dict[rt],
-        reachabilityStds_dict[rt],
+        reachability_dict[pVal],
+        reachabilityStds_dict[pVal],
         fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5,
-        label=router_type_label(rt)
+        label=router_type_label(pVal)
     )
 
-for rt in routerTypes:
-    if rt == baselineRt:
+for pVal in pValues:
+    if pVal == baselinePVal:
         continue
 
     for i, n in enumerate(numberOfNodes):
-        base_val = reachability_dict[baselineRt][i]
-        rt_val   = reachability_dict[rt][i]
+        base_val = reachability_dict[baselinePVal][i]
+        pv_val   = reachability_dict[pVal][i]
         if base_val != 0:
-            pct_diff = 100.0 * (rt_val - base_val) / base_val
+            pct_diff = 100.0 * (pv_val - base_val) / base_val
         else:
             pct_diff = 0.0
 
         plt.text(
-            n, rt_val + 0.5,
+            n, pv_val + 0.5,
             f'{pct_diff:.1f}%', 
             ha='center', 
             fontsize=8
@@ -572,36 +574,36 @@ for rt in routerTypes:
 plt.xlabel('#nodes')
 plt.ylabel('Reachability (%)')
 plt.legend()
-plt.title('Reachability by Router Type (with % Diff Annotations)')
+plt.title('Reachability by P Value (with % Diff Annotations)')
 
 ###########################################################
 # 5) Usefulness (with annotations)
 ###########################################################
 
 plt.figure()
-for rt in routerTypes:
+for pVal in pValues:
     plt.errorbar(
         numberOfNodes,
-        usefulness_dict[rt],
-        usefulnessStds_dict[rt],
+        usefulness_dict[pVal],
+        usefulnessStds_dict[pVal],
         fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5,
-        label=router_type_label(rt)
+        label=router_type_label(pVal)
     )
 
-for rt in routerTypes:
-    if rt == baselineRt:
+for pVal in pValues:
+    if pVal == baselinePVal:
         continue
 
     for i, n in enumerate(numberOfNodes):
-        base_val = usefulness_dict[baselineRt][i]
-        rt_val   = usefulness_dict[rt][i]
+        base_val = usefulness_dict[baselinePVal][i]
+        pv_val   = usefulness_dict[pVal][i]
         if base_val != 0:
-            pct_diff = 100.0 * (rt_val - base_val) / base_val
+            pct_diff = 100.0 * (pv_val - base_val) / base_val
         else:
             pct_diff = 0.0
 
         plt.text(
-            n, rt_val + 0.5,
+            n, pv_val + 0.5,
             f'{pct_diff:.1f}%', 
             ha='center', 
             fontsize=8
@@ -610,7 +612,7 @@ for rt in routerTypes:
 plt.xlabel('#nodes')
 plt.ylabel('Usefulness (%)')
 plt.legend()
-plt.title('Usefulness by Router Type (with % Diff Annotations)')
+plt.title('Usefulness by Value of P (with % Diff Annotations)')
 
 ###########################################################
 # 6) Show all the plots at once
