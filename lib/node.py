@@ -67,13 +67,14 @@ class MeshNode():
 
         # GOSSIP
         self.receivedImplAck = {}   # Dictionary of this nodes packets and whether we've received an implicit ACK 
-        self.seenPackets = set()    # Packets received
+        self.seenPackets = set()    # Packets received from other nodes. This is useful if we want to implement ACKs and Retransmissions for GOSSIP
 
         env.process(self.trackChannelUtilization(env))
         if not self.isRepeater:  # repeaters don't generate messages themselves
             env.process(self.generateMessage())
         env.process(self.receive(self.bc_pipe.get_output_conn()))
-        self.transmitter = simpy.Resource(env, 1)   # One transmitter per node?
+       # One transmitter per node (essentially a lock). Only one process can use
+        self.transmitter = simpy.Resource(env, 1)
 
         # start mobility if enabled
         if self.conf.MOVEMENT_ENABLED and self.moveRng.random() <= self.conf.APPROX_RATIO_NODES_MOVING:
@@ -171,7 +172,7 @@ class MeshNode():
         self.messages.append(MeshMessage(self.nodeid, destId, self.env.now, messageSeq))
         p = None
         if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
-            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
+            p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, False, False, None, self.env.now, self.verboseprint)
             self.receivedImplAck[messageSeq] = False
         else:
             p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
@@ -253,7 +254,8 @@ class MeshNode():
 
             if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
                 # This is mainly to prevent unnecessary retransmissions
-                if self.receivedImplAck.get(packet.seq) == True:
+                # if self.receivedImplAck.get(packet.seq) == True:
+                if packet.ackReceived:
                     self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
                     self.packets.remove(packet)
                     return
@@ -262,7 +264,7 @@ class MeshNode():
                 if packet.seq not in self.leastReceivedHopLimit:
                     self.leastReceivedHopLimit[packet.seq] = packet.hopLimit+1 
 
-                if self.leastReceivedHopLimit[packet.seq] > packet.hopLimit:
+                if not packet.ackReceived:
                     # no ACK received yet, so may start transmitting 
                     self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)
                 else:  # received ACK: abort transmit, remove from packets generated 
@@ -313,7 +315,6 @@ class MeshNode():
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
                 self.delays.append(self.env.now-p.genTime)
 
-                # update hopLimit for this message
                 if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
                     if p.seq not in self.seenPackets:
                         self.usefulPackets += 1
@@ -322,6 +323,7 @@ class MeshNode():
                         self.verboseprint('====== Already seen this packet =======')
                         self.verboseprint('====== NOT USEFUL =======')
                 else: # Non GOSSIP
+                    # update hopLimit for this message
                     if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
                         # self.verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
                         self.usefulPackets += 1

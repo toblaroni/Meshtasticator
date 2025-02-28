@@ -22,18 +22,17 @@ def checkcollision(conf, env, packet, rx_nodeId, packetsAtN):
 	if packetsAtN[rx_nodeId]:
 		for other in packetsAtN[rx_nodeId]:
 			if frequencyCollision(packet, other) and sfCollision(packet, other):
-					if timingCollision(conf, env, packet, other):
-						verboseprint('Packet nr.', packet.seq, 'from', packet.txNodeId, 'and packet nr.', other.seq, 'from', other.txNodeId, 'will collide!')
-						c = powerCollision(packet, other, rx_nodeId)
-							# mark all the collided packets
-						for p in c:
-							p.collidedAtN[rx_nodeId] = True
-							if p == packet:
-								col = 1
-					else:
-						pass # no timing collision
-		return col
-	return 0
+				if timingCollision(conf, env, packet, other):
+					verboseprint('Packet nr.', packet.seq, 'from', packet.txNodeId, 'and packet nr.', other.seq, 'from', other.txNodeId, 'will collide!')
+					c = powerCollision(packet, other, rx_nodeId)
+						# mark all the collided packets
+					for p in c:
+						p.collidedAtN[rx_nodeId] = True
+						if p == packet:
+							col = 1
+				else:
+					pass # no timing collision
+	return col
 
 
 def frequencyCollision(p1, p2):
@@ -91,9 +90,9 @@ def isChannelActive(node, env):
 
 def airtime(conf, sf, cr, pl, bw):
 	# Calculates how much time a lora packet occupies the wireless medium
-    pl = pl + conf.HEADERLENGTH  # add Meshtastic header length
-    H = 0  # implicit header disabled (H=0) or not (H=1)
-    DE = 0  # low data rate optimization enabled (=1) or not (=0)
+    pl = pl + conf.HEADERLENGTH		# add Meshtastic header length
+    H = 0							# implicit header disabled (H=0) or not (H=1)
+    DE = 0							# low data rate optimization enabled (=1) or not (=0)
 
     if bw == 125e3 and sf in [11, 12]: # low data rate optimization 
         DE = 1

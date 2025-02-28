@@ -40,7 +40,7 @@ routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [5, 10, 15, 30, 50]
+numberOfNodes = [5, 10, 15]
 
 
 #######################################
@@ -234,7 +234,7 @@ for rt_i, routerType in enumerate(routerTypes):
             routerTypeConf.SELECTED_ROUTER_TYPE = routerType
             routerTypeConf.NR_NODES = nrNodes
 
-            routerTypeConf.GOSSIP_P = 0.7
+            routerTypeConf.GOSSIP_P = 0.1
             routerTypeConf.GOSSIP_K = 3
 
             routerTypeConf.updateRouterDependencies()
@@ -459,7 +459,7 @@ plt.legend()
 plt.title('Collision Rate by Router Type (with % Diff Annotations)')
 
 ###########################################################
-# 2) Average Delay (with annotations)
+# 2) Average End-to-End Latency (with annotations)
 ###########################################################
 
 plt.figure()
@@ -494,9 +494,9 @@ for rt in routerTypes:
         )
 
 plt.xlabel('#nodes')
-plt.ylabel('Average delay (ms)')
+plt.ylabel('Average End-to-End Latency (ms)')
 plt.legend()
-plt.title('Average Delay by Router Type (with % Diff Annotations)')
+plt.title('Average End-to-End Latency by Router Type (with % Diff Annotations)')
 
 ###########################################################
 # 3) Average Tx air utilization (with annotations)
