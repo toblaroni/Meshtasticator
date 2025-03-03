@@ -260,10 +260,10 @@ class MeshNode():
                     self.packets.remove(packet)
                     return
             else:   # Non-GOSSIP routing
-                # check if you received an ACK for this message in the meantime
                 if packet.seq not in self.leastReceivedHopLimit:
                     self.leastReceivedHopLimit[packet.seq] = packet.hopLimit+1 
 
+                # check if you received an ACK for this message in the meantime
                 if not packet.ackReceived:
                     # no ACK received yet, so may start transmitting 
                     self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)

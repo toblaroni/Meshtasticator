@@ -40,7 +40,7 @@ routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [5, 10, 15]
+numberOfNodes = [3, 5, 15, 30]
 
 
 #######################################
@@ -66,53 +66,53 @@ def simulationProgress(env, currentRep, repetitions, endTime):
     startWallTime = time.time()
     lastWallTime = startWallTime
     lastEnvTime = env.now
-    
+
     # We'll store the last N ratio measurements
     N = 10
     ratios = collections.deque(maxlen=N)
-    
+
     while True:
         fraction = env.now / endTime
         fraction = min(fraction, 1.0)
-        
+
         # Current real time
         currentWallTime = time.time()
         realTimeDelta = currentWallTime - lastWallTime
         simTimeDelta = env.now - lastEnvTime
-        
+
         # Compute new ratio if sim actually advanced
         if simTimeDelta > 0:
             instant_ratio = realTimeDelta / simTimeDelta
             ratios.append(instant_ratio)
-        
+
         # If we have at least one ratio, compute a 'recent average'
         if len(ratios) > 0:
             avgRatio = sum(ratios) / len(ratios)
         else:
             avgRatio = 0.0
-        
+
         # time_left_est = avg_ratio * (endTime - env.now)
         simTimeRemaining = endTime - env.now
         timeLeftEst = simTimeRemaining * avgRatio
-        
+
         # Format mm:ss
         minutes = int(timeLeftEst // 60)
         seconds = int(timeLeftEst % 60)
-        
+
         print(
             f"\rSimulation {currentRep+1}/{repetitions} progress: "
             f"{fraction*100:.1f}% | ~{minutes}m{seconds}s left...",
             end="", flush=True
         )
-        
+
         # If done or overshoot
         if fraction >= 1.0:
             break
-        
+
         # Update references
         lastWallTime = currentWallTime
         lastEnvTime = env.now
-        
+
         yield env.timeout(10 * conf.ONE_SECOND_INTERVAL)
 
 # We will collect the metrics in dictionaries keyed by router type.
@@ -127,6 +127,8 @@ reachability_dict = {}
 reachabilityStds_dict = {}
 usefulness_dict = {}
 usefulnessStds_dict = {}
+
+coverage_dict = {}
 
 # If you have link asymmetry metrics
 asymmetricLinkRate_dict = {}
@@ -145,6 +147,7 @@ for rt in routerTypes:
     reachabilityStds_dict[rt] = []
     usefulness_dict[rt] = []
     usefulnessStds_dict[rt] = []
+    coverage_dict[rt] = []
 
     asymmetricLinkRate_dict[rt] = []
     symmetricLinkRate_dict[rt] = []
@@ -168,7 +171,7 @@ for nrNodes in numberOfNodes:
         random.seed(rep)
         found = False
         temp_nodes = []
-        
+
         # We attempt to place 'nrNodes' one by one using findRandomPosition,
         # but pass in a list of TempNode objects so it can do n.x, n.y
         while not found:
@@ -180,7 +183,7 @@ for nrNodes in numberOfNodes:
                     break
                 # Wrap coordinates in a TempNode
                 temp_nodes.append(TempNode(xnew, ynew))
-            
+
             if len(temp_nodes) == nrNodes:
                 found = True
             else:
@@ -213,6 +216,8 @@ for rt_i, routerType in enumerate(routerTypes):
     symmetricLinkRateAll = []
     noLinkRateAll = []
 
+    meanCoverage = []
+
     # Inner loop for each nrNodes
     for p, nrNodes in enumerate(numberOfNodes):
 
@@ -224,6 +229,7 @@ for rt_i, routerType in enumerate(routerTypes):
         asymmetricLinkRate = [0 for _ in range(repetitions)]
         symmetricLinkRate = [0 for _ in range(repetitions)]
         noLinkRate = [0 for _ in range(repetitions)]
+        avgCoverageReps = [ 0 for _ in range(repetitions)]
 
         print(f"\n[Router: {routerTypeLabel}] Start of {p+1} out of {len(numberOfNodes)} - {nrNodes} nodes")
 
@@ -234,8 +240,8 @@ for rt_i, routerType in enumerate(routerTypes):
             routerTypeConf.SELECTED_ROUTER_TYPE = routerType
             routerTypeConf.NR_NODES = nrNodes
 
-            routerTypeConf.GOSSIP_P = 0.1
-            routerTypeConf.GOSSIP_K = 3
+            routerTypeConf.GOSSIP_P = 0.5
+            routerTypeConf.GOSSIP_K = 0
 
             routerTypeConf.updateRouterDependencies()
 
@@ -298,6 +304,18 @@ for rt_i, routerType in enumerate(routerTypes):
             nrReceived = sum([1 for pkt in packets for n in nodes if pkt.receivedAtN[n.nodeid]])
             nrUseful = sum([n.usefulPackets for n in nodes])
 
+            avgCoverage = []
+            for pktSeq in range(messageSeq["val"]):    # Loop through all packet IDs
+                nodeCount = 0
+                for node in nodes:
+                    if routerType == conf.ROUTER_TYPE.MANAGED_FLOOD and pktSeq in node.leastReceivedHopLimit:    # Hasn't been seen by that node
+                        nodeCount += 1
+                    elif routerType == conf.ROUTER_TYPE.GOSSIP and pktSeq in node.seenPackets:
+                        nodeCount += 1
+                avgCoverage.append((nodeCount / routerTypeConf.NR_NODES)*100)
+
+            avgCoverageReps[rep] = np.nanmean(avgCoverage)
+
             if nrSensed != 0:
                 collisionRate[rep] = float(nrCollisions) / nrSensed * 100
             else:
@@ -335,6 +353,8 @@ for rt_i, routerType in enumerate(routerTypes):
         asymmetricLinkRateAll.append(np.nanmean(asymmetricLinkRate))
         symmetricLinkRateAll.append(np.nanmean(symmetricLinkRate))
         noLinkRateAll.append(np.nanmean(noLinkRate))
+
+        meanCoverage.append(np.nanmean(avgCoverageReps))
 
         # Saving to file if needed
         if SAVE:
@@ -392,6 +412,7 @@ for rt_i, routerType in enumerate(routerTypes):
     asymmetricLinkRate_dict[routerType] = asymmetricLinkRateAll
     symmetricLinkRate_dict[routerType] = symmetricLinkRateAll
     noLinkRate_dict[routerType] = noLinkRateAll
+    coverage_dict[routerType] = meanCoverage
 
 ###########################################################
 # Plotting
@@ -613,6 +634,43 @@ plt.legend()
 plt.title('Usefulness by Router Type (with % Diff Annotations)')
 
 ###########################################################
-# 6) Show all the plots at once
+# 6) Coverage (Flooding)
+###########################################################
+plt.figure()
+
+for rt in routerTypes:
+    plt.plot(
+        numberOfNodes,
+        coverage_dict[rt],
+        '-o',
+        label=router_type_label(rt)
+    )
+
+for rt in routerTypes:
+    if rt == baselineRt:
+        continue
+
+    for i, n in enumerate(numberOfNodes):
+        base_val = coverage_dict[baselineRt][i]
+        rt_val   = coverage_dict[rt][i]
+        if base_val != 0:
+            pct_diff = 100.0 * (rt_val - base_val) / base_val
+        else:
+            pct_diff = 0.0
+
+        plt.text(
+            n, rt_val + 0.5,
+            f'{pct_diff:.1f}%', 
+            ha='center', 
+            fontsize=8
+        )
+
+plt.xlabel('#nodes')
+plt.ylabel('Average Coverage of Packets (%)')
+plt.legend()
+plt.title('Coverage of Packets by Router Type (with % Diff Annotations)')
+
+###########################################################
+# Show all the plots at once
 ###########################################################
 plt.show()
