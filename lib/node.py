@@ -253,6 +253,7 @@ class MeshNode():
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
             if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
+                self.seenPackets.add(packet.seq)
                 # This is mainly to prevent unnecessary retransmissions
                 # if self.receivedImplAck.get(packet.seq) == True:
                 if packet.ackReceived:
@@ -315,14 +316,7 @@ class MeshNode():
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
                 self.delays.append(self.env.now-p.genTime)
 
-                if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
-                    if p.seq not in self.seenPackets:
-                        self.usefulPackets += 1
-                        self.seenPackets.add(p.seq)
-                    else:
-                        self.verboseprint('====== Already seen this packet =======')
-                        self.verboseprint('====== NOT USEFUL =======')
-                else: # Non GOSSIP
+                if self.conf.SELECTED_ROUTER_TYPE != self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
                     # update hopLimit for this message
                     if p.seq not in self.leastReceivedHopLimit:  # did not yet receive packet with this seq nr.
                         # self.verboseprint('Node', self.nodeid, 'received packet nr.', p.seq, 'orig. Tx', p.origTxNodeId, "for the first time.")
@@ -382,20 +376,23 @@ class MeshNode():
                     if not self.isClientMute:
                         # In GOSSIP routing we will just rebroadcast with probability 1 for k hops and p after this
                         # Even if this node sent it originally we rebroadcast
-                        if p.hopCount+1 >= self.conf.GOSSIP_K: 
-                            if random.uniform(0, 1) < self.conf.GOSSIP_P:
-                                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
+                        if p.seq not in self.seenPackets:
+                            self.seenPackets.add(p.seq)
+                            self.usefulPackets += 1
+                            if p.hopCount+1 >= self.conf.GOSSIP_K: 
+                                if random.uniform(0, 1) < self.conf.GOSSIP_P:
+                                    self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
+                                    pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
+                                    pNew.hopCount = p.hopCount+1
+                                    self.packets.append(pNew)
+                                    self.env.process(self.transmit(pNew))
+                                else:
+                                    self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'abandons rebroadcast.')
+                            else:
+                                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability 1')
                                 pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                                 pNew.hopCount = p.hopCount+1
                                 self.packets.append(pNew)
                                 self.env.process(self.transmit(pNew))
-                            else:
-                                self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'abandons rebroadcast.')
-                        else:
-                            self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability 1')
-                            pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
-                            pNew.hopCount = p.hopCount+1
-                            self.packets.append(pNew)
-                            self.env.process(self.transmit(pNew))
                 else:
                     self.droppedByDelay += 1

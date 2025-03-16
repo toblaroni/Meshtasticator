@@ -2,6 +2,7 @@
 import collections
 import time
 import matplotlib
+import sys, os
 
 try:
     matplotlib.use("TkAgg")
@@ -40,8 +41,14 @@ routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [3, 5, 15, 30]
+numberOfNodes = [ 5, 15, 30, 50, 100 ]
 
+gossip_p = float(sys.argv[1])
+gossip_k = int(sys.argv[2])
+
+output_dir = f"./out/test_results/flood_vs_gossip_{gossip_p}_{gossip_k}/"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 #######################################
 ####### SET BATCH PARAMS ABOVE ########
@@ -240,8 +247,8 @@ for rt_i, routerType in enumerate(routerTypes):
             routerTypeConf.SELECTED_ROUTER_TYPE = routerType
             routerTypeConf.NR_NODES = nrNodes
 
-            routerTypeConf.GOSSIP_P = 0.5
-            routerTypeConf.GOSSIP_K = 0
+            routerTypeConf.GOSSIP_P = gossip_p
+            routerTypeConf.GOSSIP_K = gossip_k
 
             routerTypeConf.updateRouterDependencies()
 
@@ -421,6 +428,8 @@ for rt_i, routerType in enumerate(routerTypes):
 def router_type_label(rt):
     if rt == conf.ROUTER_TYPE.MANAGED_FLOOD:
         return "Managed Flood"
+    elif rt == conf.ROUTER_TYPE.GOSSIP:
+        return f"GOSSIP({gossip_p}, {gossip_k})"
     else:
         return str(rt)
 
@@ -479,6 +488,9 @@ plt.ylabel('Collision rate (%)')
 plt.legend()
 plt.title('Collision Rate by Router Type (with % Diff Annotations)')
 
+plt.savefig(os.path.join(output_dir, "collision_rate.png"))
+plt.close()
+
 ###########################################################
 # 2) Average End-to-End Latency (with annotations)
 ###########################################################
@@ -519,6 +531,9 @@ plt.ylabel('Average End-to-End Latency (ms)')
 plt.legend()
 plt.title('Average End-to-End Latency by Router Type (with % Diff Annotations)')
 
+plt.savefig(os.path.join(output_dir, "latency.png"))
+plt.close()
+
 ###########################################################
 # 3) Average Tx air utilization (with annotations)
 ###########################################################
@@ -556,6 +571,9 @@ plt.xlabel('#nodes')
 plt.ylabel('Average Tx air utilization (ms)')
 plt.legend()
 plt.title('Tx Air Utilization by Router Type (with % Diff Annotations)')
+
+plt.savefig(os.path.join(output_dir, "tx_air_util.png"))
+plt.close()
 
 ###########################################################
 # 4) Reachability (with annotations)
@@ -595,6 +613,9 @@ plt.ylabel('Reachability (%)')
 plt.legend()
 plt.title('Reachability by Router Type (with % Diff Annotations)')
 
+plt.savefig(os.path.join(output_dir, "reachability.png"))
+plt.close()
+
 ###########################################################
 # 5) Usefulness (with annotations)
 ###########################################################
@@ -633,6 +654,9 @@ plt.ylabel('Usefulness (%)')
 plt.legend()
 plt.title('Usefulness by Router Type (with % Diff Annotations)')
 
+plt.savefig(os.path.join(output_dir, "usefulness.png"))
+plt.close()
+
 ###########################################################
 # 6) Coverage (Flooding)
 ###########################################################
@@ -670,7 +694,12 @@ plt.ylabel('Average Coverage of Packets (%)')
 plt.legend()
 plt.title('Coverage of Packets by Router Type (with % Diff Annotations)')
 
+plt.savefig(os.path.join(output_dir, "coverage.png"))
+plt.close()
+
 ###########################################################
-# Show all the plots at once
+# Show all the plots at once and save
 ###########################################################
 plt.show()
+
+

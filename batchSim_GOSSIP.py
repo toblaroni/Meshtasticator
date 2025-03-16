@@ -614,6 +614,8 @@ plt.ylabel('Usefulness (%)')
 plt.legend()
 plt.title('Usefulness by Value of P (with % Diff Annotations)')
 
+plt.figure()
+
 ###########################################################
 # 6) Show all the plots at once
 ###########################################################
