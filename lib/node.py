@@ -49,7 +49,7 @@ class MeshNode():
         self.leastReceivedHopLimit = {} # Keeps track of requests (for this node) with the lowest hop (for ACKs)
         self.isReceiving = []
         self.isTransmitting = False
-        self.usefulPackets = 0  # What is this..?
+        self.usefulPackets = 0
         self.txAirUtilization = 0
         self.airUtilization = 0
         self.droppedByDelay = 0
@@ -66,7 +66,6 @@ class MeshNode():
         self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
 
         # GOSSIP
-        self.receivedImplAck = {}   # Dictionary of this nodes packets and whether we've received an implicit ACK 
         self.seenPackets = set()    # Packets received from other nodes. This is useful if we want to implement ACKs and Retransmissions for GOSSIP
 
         env.process(self.trackChannelUtilization(env))
@@ -173,7 +172,6 @@ class MeshNode():
         p = None
         if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
             p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, False, False, None, self.env.now, self.verboseprint)
-            self.receivedImplAck[messageSeq] = False
         else:
             p = MeshPacket(self.conf, self.nodes, self.nodeid, destId, self.nodeid, self.conf.PACKETLENGTH, messageSeq, self.env.now, True, False, None, self.env.now, self.verboseprint)
         self.packets.append(p)
@@ -252,15 +250,7 @@ class MeshNode():
                 yield self.env.timeout(txTime)
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'ends waiting')
 
-            if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
-                self.seenPackets.add(packet.seq)
-                # This is mainly to prevent unnecessary retransmissions
-                # if self.receivedImplAck.get(packet.seq) == True:
-                if packet.ackReceived:
-                    self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
-                    self.packets.remove(packet)
-                    return
-            else:   # Non-GOSSIP routing
+            if self.conf.SELECTED_ROUTER_TYPE != self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
                 if packet.seq not in self.leastReceivedHopLimit:
                     self.leastReceivedHopLimit[packet.seq] = packet.hopLimit+1 
 
@@ -272,6 +262,9 @@ class MeshNode():
                     self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'in the meantime received ACK, abort packet with seq. nr', packet.seq)
                     self.packets.remove(packet)
                     return
+            else:
+                self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'started low level send', packet.seq, 'hopLimit', packet.hopLimit, 'original Tx', packet.origTxNodeId)
+                self.seenPackets.add(packet.seq)    # Avoid rebroadcasting sent packets
 
             # Transmit
             self.nrPacketsSent += 1
@@ -310,7 +303,7 @@ class MeshNode():
                     pass
                 self.airUtilization += p.timeOnAir
                 if p.collidedAtN[self.nodeid]:
-                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'could not decode packet.')
+                    self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'could not decode packet', p.seq)
                     continue
                 p.receivedAtN[self.nodeid] = True
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
@@ -325,33 +318,28 @@ class MeshNode():
                     if p.hopLimit < self.leastReceivedHopLimit[p.seq]:  # hop limit of received packet is lower than previously received one
                         self.leastReceivedHopLimit[p.seq] = p.hopLimit
 
-                # check if implicit ACK for own generated message
-                if p.origTxNodeId == self.nodeid:
-                    if p.isAck:
-                        self.verboseprint('Node', self.nodeid, 'received real ACK on generated message.')
-                    else:
-                        self.verboseprint('Node', self.nodeid, 'received implicit ACK on message sent.')
-                    p.ackReceived = True
+                    # check if implicit ACK for own generated message
+                    if p.origTxNodeId == self.nodeid:
+                        if p.isAck:
+                            self.verboseprint('Node', self.nodeid, 'received real ACK on generated message.')
+                        else:
+                            self.verboseprint('Node', self.nodeid, 'received implicit ACK on message sent.')
+                        p.ackReceived = True
+                        continue
 
-                    if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
-                        self.receivedImplAck[p.seq] = True
-                    continue
-
-                ackReceived = False
-                realAckReceived = False
-                for sentPacket in self.packets:
-                    # check if ACK for message you currently have in queue
-                    if sentPacket.txNodeId == self.nodeid and sentPacket.seq == p.seq:
-                        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received implicit ACK for message in queue.')
-                        ackReceived = True
-                        sentPacket.ackReceived = True
-                        if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.GOSSIP:
-                            self.receivedImplAck[sentPacket.seq] = True
-                    # check if real ACK for message sent
-                    if sentPacket.origTxNodeId == self.nodeid and p.isAck and sentPacket.seq == p.requestId:
-                        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received real ACK.')
-                        realAckReceived = True
-                        sentPacket.ackReceived = True
+                    ackReceived = False
+                    realAckReceived = False
+                    for sentPacket in self.packets:
+                        # check if ACK for message you currently have in queue
+                        if sentPacket.txNodeId == self.nodeid and sentPacket.seq == p.seq:
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received implicit ACK for message in queue.')
+                            ackReceived = True
+                            sentPacket.ackReceived = True
+                        # check if real ACK for message sent
+                        if sentPacket.origTxNodeId == self.nodeid and p.isAck and sentPacket.seq == p.requestId:
+                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received real ACK.')
+                            realAckReceived = True
+                            sentPacket.ackReceived = True
 
                 # send real ACK if you are the destination and you did not yet send the ACK
                 if p.wantAck and p.destId == self.nodeid and not any(pA.requestId == p.seq for pA in self.packets):
@@ -379,7 +367,7 @@ class MeshNode():
                         if p.seq not in self.seenPackets:
                             self.seenPackets.add(p.seq)
                             self.usefulPackets += 1
-                            if p.hopCount+1 >= self.conf.GOSSIP_K: 
+                            if p.hopCount >= self.conf.GOSSIP_K: 
                                 if random.uniform(0, 1) < self.conf.GOSSIP_P:
                                     self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
                                     pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
@@ -394,5 +382,8 @@ class MeshNode():
                                 pNew.hopCount = p.hopCount+1
                                 self.packets.append(pNew)
                                 self.env.process(self.transmit(pNew))
+                        else:
+                            self.verboseprint('(GOSSIP) Node', self.nodeid, 'has already received packet', p.seq, '- no rebroadcast')
+                            continue
                 else:
                     self.droppedByDelay += 1

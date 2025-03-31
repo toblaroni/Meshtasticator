@@ -47,12 +47,6 @@ def getParams(conf, args):
 						try:
 							conf.GOSSIP_P = float(args[3])
 							conf.GOSSIP_K = int(args[4])
-							if conf.GOSSIP_P <= 0 or conf.GOSSIP_P > 1:
-								print("Invalid value for GOSSIP probability. Expected (0, 1]")
-								exit(1)
-							if conf.GOSSIP_K < 0:
-								print("Value for initial hops must be positive")
-								exit(1)
 						except Exception as e:
 							print(e)
 							print("GOSSIP Routing Usage: ./loraMesh [nr_nodes] GOSSIP [probability (float)] [number_of_inital_hops (int)]")

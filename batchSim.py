@@ -41,7 +41,7 @@ routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [ 5, 15, 30, 50, 100 ]
+numberOfNodes = [ 3, 5, 10, 20, 25 ]
 
 gossip_p = float(sys.argv[1])
 gossip_k = int(sys.argv[2])
@@ -136,6 +136,7 @@ usefulness_dict = {}
 usefulnessStds_dict = {}
 
 coverage_dict = {}
+coverageStds_dict = {}
 
 # If you have link asymmetry metrics
 asymmetricLinkRate_dict = {}
@@ -155,6 +156,7 @@ for rt in routerTypes:
     usefulness_dict[rt] = []
     usefulnessStds_dict[rt] = []
     coverage_dict[rt] = []
+    coverageStds_dict[rt] = []
 
     asymmetricLinkRate_dict[rt] = []
     symmetricLinkRate_dict[rt] = []
@@ -224,6 +226,7 @@ for rt_i, routerType in enumerate(routerTypes):
     noLinkRateAll = []
 
     meanCoverage = []
+    coverageStds = []
 
     # Inner loop for each nrNodes
     for p, nrNodes in enumerate(numberOfNodes):
@@ -362,6 +365,7 @@ for rt_i, routerType in enumerate(routerTypes):
         noLinkRateAll.append(np.nanmean(noLinkRate))
 
         meanCoverage.append(np.nanmean(avgCoverageReps))
+        coverageStds.append(np.nanstd(avgCoverageReps))
 
         # Saving to file if needed
         if SAVE:
@@ -420,6 +424,7 @@ for rt_i, routerType in enumerate(routerTypes):
     symmetricLinkRate_dict[routerType] = symmetricLinkRateAll
     noLinkRate_dict[routerType] = noLinkRateAll
     coverage_dict[routerType] = meanCoverage
+    coverageStds_dict[routerType] = coverageStds
 
 ###########################################################
 # Plotting
@@ -492,7 +497,7 @@ plt.savefig(os.path.join(output_dir, "collision_rate.png"))
 plt.close()
 
 ###########################################################
-# 2) Average End-to-End Latency (with annotations)
+# 2) Mean delays (with annotations)
 ###########################################################
 
 plt.figure()
@@ -527,9 +532,9 @@ for rt in routerTypes:
         )
 
 plt.xlabel('#nodes')
-plt.ylabel('Average End-to-End Latency (ms)')
+plt.ylabel('Average Delay (ms)')
 plt.legend()
-plt.title('Average End-to-End Latency by Router Type (with % Diff Annotations)')
+plt.title('Average Delay Between Packets by Router Type (with % Diff Annotations)')
 
 plt.savefig(os.path.join(output_dir, "latency.png"))
 plt.close()
@@ -663,12 +668,14 @@ plt.close()
 plt.figure()
 
 for rt in routerTypes:
-    plt.plot(
+    plt.errorbar(
         numberOfNodes,
         coverage_dict[rt],
-        '-o',
+        coverageStds_dict[rt],
+        fmt='-o', capsize=3, ecolor='red', elinewidth=0.5, capthick=0.5,
         label=router_type_label(rt)
     )
+
 
 for rt in routerTypes:
     if rt == baselineRt:

@@ -68,7 +68,7 @@ class Config:
         ### End of PHY parameters ###
 
         # Misc
-        self.SEED = 45  # random seed to use
+        self.SEED = 0  # random seed to use
         self.PLOT = True
         self.RANDOM = False
         # End of misc
@@ -110,7 +110,7 @@ class Config:
         ####### MOVING NODE SIMULATION VARIABLES ########
         #################################################
 
-        self.MOVEMENT_ENABLED = True
+        self.MOVEMENT_ENABLED = False
         # The average number of meters a human walks in a minute
         self.WALKING_METERS_PER_MIN = 96
         # The average number of meters a human bikes in a minute
@@ -120,7 +120,7 @@ class Config:
         # The % of nodes that end up mobile in the simulation 0.4 = ~40%
         self.APPROX_RATIO_NODES_MOVING = 0.3
         # The % of mobile nodes that have GPS enabled 0.5 = 50%
-        self.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0.3
+        self.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0
 
         # 100 meters
         self.SMART_POSITION_DISTANCE_THRESHOLD = 100

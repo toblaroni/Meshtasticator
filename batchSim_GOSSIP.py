@@ -39,9 +39,9 @@ SAVE = True
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [ 3, 5, 10, 15, 30 ]
+numberOfNodes = [ 5, 10, 15, 30, 50 ]
 
-pValues = [  0.3, 0.5, 0.8 ]
+pValues = [ 0.1, 0.3, 0.5, 0.7 ]
 kValues = [ 1, 2, 3, 4, 5 ]
 
 
@@ -197,7 +197,7 @@ for nrNodes in numberOfNodes:
 ###########################################################
 
 # Outer loop for each router type
-for pv_i, pVal in enumerate(pValues):
+for pv_i, pVal in enumerate(kValues):
     pValueLabel = str(pVal)
 
     # Prepare arrays for the final plot data, one per metric
@@ -236,8 +236,8 @@ for pv_i, pVal in enumerate(pValues):
             routerTypeConf.SELECTED_ROUTER_TYPE = routerTypeConf.ROUTER_TYPE.GOSSIP
             routerTypeConf.NR_NODES = nrNodes
 
-            routerTypeConf.GOSSIP_P = 1
-            routerTypeConf.GOSSIP_K = 0
+            routerTypeConf.GOSSIP_P = 0.5
+            routerTypeConf.GOSSIP_K = pVal
 
             routerTypeConf.updateRouterDependencies()
 
