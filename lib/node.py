@@ -8,7 +8,7 @@ from lib.packet import *
 
 
 class MeshNode():
-    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint):
+    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint, send_packet=True):
         self.conf = conf
         self.nodeid = nodeid
         self.verboseprint = verboseprint
@@ -65,6 +65,8 @@ class MeshNode():
         self.channelUtilizationIndex = 0  # which "bucket" is current
         self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
 
+        self.send_packet = send_packet
+
         # GOSSIP
         self.seenPackets = set()    # Packets received from other nodes. This is useful if we want to implement ACKs and Retransmissions for GOSSIP
 
@@ -119,7 +121,6 @@ class MeshNode():
 
     def moveNode(self, env):
         while True:
-
             # Pick a random direction and distance
             angle = 2 * math.pi * self.moveRng.random()
             distance = self.movementStepSize * self.moveRng.random()
@@ -189,7 +190,7 @@ class MeshNode():
         return -1
 
     def generateMessage(self):
-        while True:
+        if self.send_packet:
             # Returns -1 if we won't make it before the sim ends
             nextGen = self.getNextTime(self.period)
             # do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
@@ -229,7 +230,7 @@ class MeshNode():
                             self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'reliable send of', p.seq, 'failed.')
                             break
             else:  # do not send this message anymore, since it is close to the end of the simulation
-                break
+                return
 
 
     def transmit(self, packet):
@@ -302,12 +303,16 @@ class MeshNode():
                 except: 
                     pass
                 self.airUtilization += p.timeOnAir
+                # COMMENT THIS OUT FOR THE BIMODAL TEST (NO COLLISIONS)
+                """
                 if p.collidedAtN[self.nodeid]:
                     self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'could not decode packet', p.seq)
                     continue
+                """
                 p.receivedAtN[self.nodeid] = True
                 self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'received packet', p.seq, 'with delay', round(self.env.now-p.genTime, 2))
                 self.delays.append(self.env.now-p.genTime)
+
 
                 if self.conf.SELECTED_ROUTER_TYPE != self.conf.ROUTER_TYPE.GOSSIP:  # GOSSIP
                     # update hopLimit for this message
@@ -368,7 +373,7 @@ class MeshNode():
                             self.seenPackets.add(p.seq)
                             self.usefulPackets += 1
                             if p.hopCount >= self.conf.GOSSIP_K: 
-                                if random.uniform(0, 1) < self.conf.GOSSIP_P:
+                                if self.rebroadcastRng.uniform(0, 1) < self.conf.GOSSIP_P:
                                     self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
                                     pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                                     pNew.hopCount = p.hopCount+1

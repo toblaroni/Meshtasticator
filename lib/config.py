@@ -10,11 +10,12 @@ class Config:
     def __init__(self):
         self.MODEL = 5  # Pathloss model to use (see README)
 
-        self.XSIZE = 15000  # horizontal size of the area to simulate in m 
-        self.YSIZE = 15000  # vertical size of the area to simulate in m
+        size = 100500
+        self.XSIZE = size  # horizontal size of the area to simulate in m 
+        self.YSIZE = size  # vertical size of the area to simulate in m
         self.OX = 0.0  # origin x-coordinate
         self.OY = 0.0  # origin y-coordinate
-        self.MINDIST = 10  # minimum distance between each node in the area in m
+        self.MINDIST = 3  # minimum distance between each node in the area in m
 
         self.GL = 0  # antenna gain of each node in dBi
         self.HM = 1.0  # height of each node in m
@@ -136,6 +137,5 @@ class Config:
             # Change config values if necessary for your router here
         if self.SELECTED_ROUTER_TYPE == self.ROUTER_TYPE.GOSSIP:
             self.hopLimit = None    # No limit
-            # TODO: DMs with GOSSIP
             self.DMs = False        # Currently only broadcasts allowed 
         return
