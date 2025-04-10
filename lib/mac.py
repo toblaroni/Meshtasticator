@@ -37,7 +37,10 @@ def getTxDelayMsecWeighted(node, rssi):  # from RadioInterface::getTxDelayMsecWe
 
 
 def getTxDelayMsec(node):  # from RadioInterface::getTxDelayMsec
-    channelUtil = node.airUtilization/node.env.now*100 
+    if node.env.now != 0:
+        channelUtil = node.airUtilization/node.env.now*100 
+    else:
+        channelUtil = 0 
     CWsize = int(channelUtil*(CWmax - CWmin)/100 + CWmin)
     CW = random.randint(0, 2**CWsize-1)
     verboseprint('Current channel utilization is', channelUtil, 'So picked CW', CW)

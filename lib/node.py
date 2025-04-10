@@ -8,13 +8,13 @@ from lib.packet import *
 
 
 class MeshNode():
-    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint, send_packet=True):
+    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint, send_packet=True, rep_seed=0):
         self.conf = conf
         self.nodeid = nodeid
         self.verboseprint = verboseprint
         self.moveRng = random.Random(nodeid)
         self.nodeRng = random.Random(nodeid)
-        self.rebroadcastRng = random.Random()
+        self.rebroadcastRng = random.Random(nodeid+rep_seed)
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
             self.y = nodeConfig['y']
@@ -35,7 +35,7 @@ class MeshNode():
         # messageSeq: Dict { 'val': <num> }
         # Everytime a packet gets sent the messageSeq of the node gets incremented
         # This Dict is **shared** across all nodes so that messages have unique IDs...
-        self.messageSeq = messageSeq    
+        self.messageSeq = messageSeq
         self.env = env
         self.period = period
         self.bc_pipe = bc_pipe
@@ -191,46 +191,41 @@ class MeshNode():
 
     def generateMessage(self):
         if self.send_packet:
-            # Returns -1 if we won't make it before the sim ends
-            nextGen = self.getNextTime(self.period)
             # do not generate message near the end of the simulation (otherwise flooding cannot finish in time)
-            if nextGen >= 0:
-                yield self.env.timeout(nextGen) 
+            if self.conf.DMs:
+                destId = self.nodeRng.choice([i for i in range(0, len(self.nodes)) if i is not self.nodeid])
+            else:
+                destId = NODENUM_BROADCAST
 
-                if self.conf.DMs:
-                    destId = self.nodeRng.choice([i for i in range(0, len(self.nodes)) if i is not self.nodeid])
-                else:
-                    destId = NODENUM_BROADCAST
+            p = self.sendPacket(destId)
 
-                p = self.sendPacket(destId)
-                
-                while p.wantAck: # ReliableRouter: retransmit message if no ACK received after timeout 
-                    retransmissionMsec = getRetransmissionMsec(self, p) 
-                    yield self.env.timeout(retransmissionMsec)
+            while p.wantAck: # ReliableRouter: retransmit message if no ACK received after timeout 
+                retransmissionMsec = getRetransmissionMsec(self, p) 
+                yield self.env.timeout(retransmissionMsec)
 
-                    ackReceived = False  # check whether you received an ACK on the transmitted message
-                    minRetransmissions = self.conf.maxRetransmission
-                    for packetSent in self.packets:
-                        if packetSent.origTxNodeId == self.nodeid and packetSent.seq == p.seq:
-                            if packetSent.retransmissions < minRetransmissions:
-                                minRetransmissions = packetSent.retransmissions
-                            if packetSent.ackReceived:
-                                ackReceived = True
-                    if ackReceived: 
-                        self.verboseprint('Node', self.nodeid, 'received ACK on generated message with seq. nr.', p.seq)
+                ackReceived = False  # check whether you received an ACK on the transmitted message
+                minRetransmissions = self.conf.maxRetransmission
+                for packetSent in self.packets:
+                    if packetSent.origTxNodeId == self.nodeid and packetSent.seq == p.seq:
+                        if packetSent.retransmissions < minRetransmissions:
+                            minRetransmissions = packetSent.retransmissions
+                        if packetSent.ackReceived:
+                            ackReceived = True
+                if ackReceived: 
+                    self.verboseprint('Node', self.nodeid, 'received ACK on generated message with seq. nr.', p.seq)
+                    break
+                else: 
+                    if minRetransmissions > 0:  # generate new packet with same sequence number
+                        pNew = MeshPacket(self.conf, self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint)
+                        pNew.retransmissions = minRetransmissions-1
+                        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
+                        self.packets.append(pNew)
+                        self.env.process(self.transmit(pNew))
+                    else:
+                        self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'reliable send of', p.seq, 'failed.')
                         break
-                    else: 
-                        if minRetransmissions > 0:  # generate new packet with same sequence number
-                            pNew = MeshPacket(self.conf, self.nodes, self.nodeid, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint)
-                            pNew.retransmissions = minRetransmissions-1
-                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'wants to retransmit its generated packet to', destId, 'with seq.nr.', p.seq, 'minRetransmissions', minRetransmissions)
-                            self.packets.append(pNew)
-                            self.env.process(self.transmit(pNew))
-                        else:
-                            self.verboseprint('At time', round(self.env.now, 3), 'node', self.nodeid, 'reliable send of', p.seq, 'failed.')
-                            break
-            else:  # do not send this message anymore, since it is close to the end of the simulation
-                return
+        else:  # do not send this message anymore, since it is close to the end of the simulation
+            return
 
 
     def transmit(self, packet):

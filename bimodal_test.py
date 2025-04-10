@@ -11,6 +11,7 @@ try:
 except ImportError:
     print('Tkinter is needed. Install python3-tk with your package manager.')
     exit(1)
+
 import simpy
 import numpy as np
 import random
@@ -29,14 +30,23 @@ from lib.phy import *
 # Histogram
 ###########################################################
 def plot_coverage(coverage):
-    plt.figure(figsize=(10, 6))
-    sns.histplot(coverage, stat='count', bins=10, kde=True)
-    plt.xlabel('Reachability (%)')
-    plt.ylabel('Frequency')
-    plt.title(f'Distribution of Reachability in GOSSIP1(p={gossip_p}, k={gossip_k})')
-    # plt.axvline(x=20, color='r', linestyle='--', label='Low Reachability (Gossip Dies)')
-    # plt.axvline(x=80, color='g', linestyle='--', label='High Reachability (Gossip Spreads)')
-    # plt.legend()
+    bins = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    plt.figure(figsize=(8, 6))
+    sns.histplot(
+        coverage,
+        stat='probability',
+        bins = 10,
+        binrange=(0, 1),
+        kde=False
+    )
+    plt.margins(x=0)
+    plt.ylim(0, 1)
+    plt.xlim(0, 1)
+    plt.xlabel('Fraction of nodes receiving the message')
+    plt.ylabel('Fraction of Executions')
+    plt.title(f'Distribution of Reachability in GOSSIP1({gossip_p}, {gossip_k})')
+    plt.xticks(np.arange(0, 1.1, 0.1))
+    plt.yticks(np.arange(0, 1.1, 0.1))
     plt.savefig(os.path.join(output_dir, 'bimodal_test.png'))
     plt.show()
 
@@ -53,7 +63,7 @@ numberOfNodes = [ 100 ]
 gossip_p = float(sys.argv[1])
 gossip_k = int(sys.argv[2])
 
-output_dir = f"./out/test_results/bimodal_test_{gossip_p}_{gossip_k}/"
+output_dir = f"./out/test_results/bimodal_test/bimodal_test_{gossip_p}_{gossip_k}/"
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
@@ -248,7 +258,7 @@ for rep in range(repetitions):
         node = MeshNode(
             routerTypeConf, nodes, env, bc_pipe, nodeId, routerTypeConf.PERIOD,
             messages, packetsAtN, packets, delays, nodeConfig,
-            messageSeq, verboseprint, False
+            messageSeq, verboseprint, False, rep
         )
         nodes.append(node)
         if SHOW_GRAPH:
@@ -259,9 +269,15 @@ for rep in range(repetitions):
 
     totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(routerTypeConf, nodes)
 
+    """
     # Pick a node to send a packet
     random_node = random.randint(0, routerTypeConf.NR_NODES-1)
     nodes[random_node].send_packet = True
+    """
+
+    # Same node sends everytime
+    sender = 0
+    nodes[sender].send_packet = True
 
     # Start simulation
     env.run(until=routerTypeConf.SIMTIME)
@@ -276,7 +292,7 @@ for rep in range(repetitions):
         if 1 in node.seenPackets:
             num_reached += 1
 
-    coverage[rep] = num_reached * 100 / routerTypeConf.NR_NODES
+    coverage[rep] = num_reached / routerTypeConf.NR_NODES
 
 
 with open(os.path.join(output_dir, "data.json"), "w") as fp:
