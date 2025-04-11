@@ -8,13 +8,13 @@ from lib.packet import *
 
 
 class MeshNode():
-    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint):
+    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint, rep_seed=0):
         self.conf = conf
         self.nodeid = nodeid
         self.verboseprint = verboseprint
         self.moveRng = random.Random(nodeid)
         self.nodeRng = random.Random(nodeid)
-        self.rebroadcastRng = random.Random()
+        self.rebroadcastRng = random.Random(nodeid+rep_seed)
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
             self.y = nodeConfig['y']
@@ -368,7 +368,7 @@ class MeshNode():
                             self.seenPackets.add(p.seq)
                             self.usefulPackets += 1
                             if p.hopCount >= self.conf.GOSSIP_K: 
-                                if random.uniform(0, 1) < self.conf.GOSSIP_P:
+                                if self.rebroadcastRng.uniform(0, 1) < self.conf.GOSSIP_P:
                                     self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
                                     pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                                     pNew.hopCount = p.hopCount+1
