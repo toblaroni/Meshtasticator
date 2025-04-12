@@ -68,7 +68,7 @@ class Config:
         ### End of PHY parameters ###
 
         # Misc
-        self.SEED = 0  # random seed to use
+        self.SEED = 45  # random seed to use
         self.PLOT = True
         self.RANDOM = False
         # End of misc
