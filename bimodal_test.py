@@ -42,9 +42,9 @@ def plot_coverage(coverage):
     plt.margins(x=0)
     plt.ylim(0, 1)
     plt.xlim(0, 1)
-    plt.xlabel('Fraction of nodes receiving the message')
-    plt.ylabel('Fraction of Executions')
-    plt.title(f'Distribution of Reachability in GOSSIP1({gossip_p}, {gossip_k})')
+    plt.xlabel('Fraction of nodes receiving the message', fontsize=14)
+    plt.ylabel('Fraction of Executions', fontsize=14)
+    plt.title(f'Distribution of Reachability in GOSSIP1({gossip_p}, {gossip_k})', fontsize=16)
     plt.xticks(np.arange(0, 1.1, 0.1))
     plt.yticks(np.arange(0, 1.1, 0.1))
     plt.savefig(os.path.join(output_dir, 'bimodal_test.png'))
@@ -194,8 +194,8 @@ node_space = phy.MAXRANGE * scale_range
 grid_width = cols * node_space
 grid_height = rows * node_space
 
-# Generate coordinates of a grid
-grid_positions = [( (x * node_space - grid_width/2), (y * node_space - grid_height/2) ) for x in range(cols) for y in range(rows)]
+# Generate coordinates of a grid, centered at 0, 0
+grid_positions = [ ( (x - (cols - 1) / 2) * node_space, (y - (rows - 1) / 2) * node_space ) for x in range(cols) for y in range(rows) ]
 
 ###########################################################
 # Main simulation loops
