@@ -20,6 +20,7 @@ from lib.packet import *
 from lib.mac import *
 from lib.discrete_event import *
 from lib.node import *
+from common
 
 # TODO - There should really be two separate concepts here, a STATE and a CONFIG
 # today, the config also maintains state
@@ -41,7 +42,7 @@ routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 repetitions = 3
 
 # How many nodes should be simulated in each test
-numberOfNodes = [ 3, 5, 10, 20, 25 ]
+numberOfNodes = [ 250 ]
 
 gossip_p = float(sys.argv[1])
 gossip_k = int(sys.argv[2])
@@ -60,67 +61,6 @@ if VERBOSE:
 else:
     def verboseprint(*args, **kwargs): 
         pass
-
-###########################################################
-# Progress-logging process
-###########################################################
-def simulationProgress(env, currentRep, repetitions, endTime):
-    """
-    Keep track of the ratio of real time per sim-second over
-    a fixed sliding window, so if the simulation slows down near the end,
-    the time-left estimate adapts quickly.
-    """
-    startWallTime = time.time()
-    lastWallTime = startWallTime
-    lastEnvTime = env.now
-
-    # We'll store the last N ratio measurements
-    N = 10
-    ratios = collections.deque(maxlen=N)
-
-    while True:
-        fraction = env.now / endTime
-        fraction = min(fraction, 1.0)
-
-        # Current real time
-        currentWallTime = time.time()
-        realTimeDelta = currentWallTime - lastWallTime
-        simTimeDelta = env.now - lastEnvTime
-
-        # Compute new ratio if sim actually advanced
-        if simTimeDelta > 0:
-            instant_ratio = realTimeDelta / simTimeDelta
-            ratios.append(instant_ratio)
-
-        # If we have at least one ratio, compute a 'recent average'
-        if len(ratios) > 0:
-            avgRatio = sum(ratios) / len(ratios)
-        else:
-            avgRatio = 0.0
-
-        # time_left_est = avg_ratio * (endTime - env.now)
-        simTimeRemaining = endTime - env.now
-        timeLeftEst = simTimeRemaining * avgRatio
-
-        # Format mm:ss
-        minutes = int(timeLeftEst // 60)
-        seconds = int(timeLeftEst % 60)
-
-        print(
-            f"\rSimulation {currentRep+1}/{repetitions} progress: "
-            f"{fraction*100:.1f}% | ~{minutes}m{seconds}s left...",
-            end="", flush=True
-        )
-
-        # If done or overshoot
-        if fraction >= 1.0:
-            break
-
-        # Update references
-        lastWallTime = currentWallTime
-        lastEnvTime = env.now
-
-        yield env.timeout(10 * conf.ONE_SECOND_INTERVAL)
 
 # We will collect the metrics in dictionaries keyed by router type.
 # For example: collisions_dict[ routerType ] = [list of mean collisions, one per nrNodes]

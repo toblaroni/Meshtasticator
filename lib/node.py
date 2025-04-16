@@ -12,8 +12,9 @@ class MeshNode():
         self.conf = conf
         self.nodeid = nodeid
         self.verboseprint = verboseprint
-        self.moveRng = random.Random(nodeid)
-        self.nodeRng = random.Random(nodeid)
+        # We want these to be unique for each node, and each simulation
+        self.moveRng = random.Random(nodeid+rep_seed)
+        self.nodeRng = random.Random(nodeid+rep_seed)
         self.rebroadcastRng = random.Random(nodeid+rep_seed)
         if nodeConfig is not None: 
             self.x = nodeConfig['x']
