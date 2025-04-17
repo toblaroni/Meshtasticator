@@ -42,10 +42,11 @@ else:
 
 repetitions = 20
 numberOfNodes = [ 30 ]
-mobility_ratios = [ 0.8, 0.85, 0.9, 0.95, 1 ]
+mobility_ratios = [ 0.8, 0.9, 1 ]
 movement_speeds = [ conf.WALKING_METERS_PER_MIN, conf.BIKING_METERS_PER_MIN, conf.DRIVING_METERS_PER_MIN ]
 gossip_p_vals = [ 0.55, 0.6, 0.65, 0.7, 0.75 ]
 gossip_k_vals = [ 1, 2 ]
+
 
 routerTypes = [ (conf.ROUTER_TYPE.MANAGED_FLOOD, None, None) ]
 for p in gossip_p_vals:
