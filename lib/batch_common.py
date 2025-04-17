@@ -105,38 +105,3 @@ def gen_random_positions(conf, repetitions, numberOfNodes):
     return positions_cache
 
 
-##############################################################################
-# Save results to JSON file for quick graphing
-##############################################################################
-def save_results( conf, results, routerTypes, numberOfNodes, output_dir ):
-    """
-    Expects results to be a list of dictionarys with routerTypes being the keys
-    Expects routerTypes: Tuple( ROUTER_TYPE, p, k )
-    """
-    results_data = {
-        "numberOfNodes": numberOfNodes,
-        "MANAGED_FLOOD": {},
-        "GOSSIP": []    # Explicitly save p and k for easy retrieval
-    }
-
-
-    for rt_info in routerTypes:
-        router_type = rt_info[0]
-
-        if router_type == conf.ROUTER_TYPE.MANAGED_FLOOD:
-            for result_key in results:
-                results_data["MANAGED_FLOOD"][result_key] = results[result_key][rt_info]
-
-        elif router_type == conf.ROUTER_TYPE.GOSSIP:
-            _, p, k = rt_info
-
-            entry = { "p": p, "k": k }
-
-            for result_key in results:
-                entry[result_key] = results[result_key][rt_info]
-
-            results_data["GOSSIP"].append(entry)
-
-
-    with open(os.path.join(output_dir, "data.json"), "w") as f:
-        json.dump(results_data, f, indent=4)

@@ -82,13 +82,7 @@ class MeshNode():
             if self.moveRng.random() <= self.conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
                 self.gpsEnabled = True
 
-            # Randomly assign a movement speed
-            possibleSpeeds = [
-                self.conf.WALKING_METERS_PER_MIN,  # e.g.,  96 m/min
-                self.conf.BIKING_METERS_PER_MIN,   # e.g., 390 m/min
-                self.conf.DRIVING_METERS_PER_MIN   # e.g., 1500 m/min
-            ]
-            self.movementStepSize = self.moveRng.choice(possibleSpeeds)
+            self.movementStepSize = self.conf.MOVEMENT_SPEED
 
             env.process(self.moveNode(env))
 

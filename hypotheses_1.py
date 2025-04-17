@@ -39,8 +39,8 @@ else:
 ####### INDEPENDENT VARIABLES ########
 #######################################
 
-repetitions = 20
-numberOfNodes = [ 5, 25, 50, 100, 250 ]
+repetitions = 2
+numberOfNodes = [ 3 ]
 gossip_p_vals = [ 0.55, 0.6, 0.65, 0.7, 0.75 ]
 gossip_k_vals = [ 1, 2, 4 ]
 
@@ -196,7 +196,34 @@ results = {
     "redundancy_stds": redundancyStds_dict,
 }
 
-save_results( conf, results, routerTypes, numberOfNodes, output_dir )
+results_data = {
+    "numberOfNodes": numberOfNodes,
+    "MANAGED_FLOOD": {},
+    "GOSSIP": []    # Explicitly save p and k for easy retrieval
+}
+
+
+for rt_info in routerTypes:
+    router_type = rt_info[0]
+
+    if router_type == conf.ROUTER_TYPE.MANAGED_FLOOD:
+        for result_key in results:
+            results_data["MANAGED_FLOOD"][result_key] = results[result_key][rt_info]
+
+    elif router_type == conf.ROUTER_TYPE.GOSSIP:
+        _, p, k = rt_info
+
+        entry = { "p": p, "k": k }
+
+        for result_key in results:
+            entry[result_key] = results[result_key][rt_info]
+
+        results_data["GOSSIP"].append(entry)
+
+
+with open(os.path.join(output_dir, "data.json"), "w") as f:
+    json.dump(results_data, f, indent=4)
+
 
 ###########################################################
 # Plotting
