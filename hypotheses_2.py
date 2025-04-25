@@ -16,7 +16,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from lib.hypotheses_1_config import Config
+from lib.hypotheses_2_config import Config2
 from lib.common import *
 from lib.packet import *
 from lib.mac import *
@@ -25,7 +25,7 @@ from lib.node import *
 from lib.batch_common import *
 
 # Debug
-conf = Config()
+conf = Config2()
 VERBOSE = False
 SHOW_GRAPH = False
 
@@ -95,18 +95,19 @@ for rt_i, routerType in enumerate(routerTypes):
     # Inner loop for each nrNodes
     for r, mobility_ratio in enumerate(mobility_ratios):
         for s, movement_speed in enumerate(movement_speeds):
+            if routerTypeLabel == conf.ROUTER_TYPE.MANAGED_FLOOD:
+                print(f"\n[Router: {routerTypeLabel}] Start of mobility ratio: {mobility_ratio}, movement speed: {movement_speed}m/min.")
+            else:
+                print(f"\n[Router: {routerTypeLabel}({gossip_p}, {gossip_k})] Start of mobility ratio: {mobility_ratio}, movement speed: {movement_speed}m/min.")
 
             nodeReach = [ 0 for _ in range(repetitions)]
 
             for rep in range(repetitions):
-                if routerTypeLabel == conf.ROUTER_TYPE.MANAGED_FLOOD:
-                    print(f"\n[Router: {routerTypeLabel}] Start of mobility ratio: {mobility_ratio}, movement speed: {movement_speed}m/min.")
-                else:
-                    print(f"\n[Router: {routerTypeLabel}({gossip_p}, {gossip_k})] Start of mobility ratio: {mobility_ratio}, movement speed: {movement_speed}m/min.")
 
                 # For the highest degree of separation between runs, config
                 # should be instantiated every repetition for this router type and node number
-                routerTypeConf = Config()
+                routerTypeConf = Config2()
+                print(routerTypeConf.MOVEMENT_ENABLED)
                 routerTypeConf.SELECTED_ROUTER_TYPE = routerTypeLabel
                 routerTypeConf.NR_NODES = numberOfNodes[0]
 
@@ -123,6 +124,7 @@ for rt_i, routerType in enumerate(routerTypes):
                 random.seed(effectiveSeed)
                 env = simpy.Environment()
                 bc_pipe = BroadcastPipe(env)
+
 
                 # Start the progress-logging process
                 env.process(simulationProgress(env, conf, rep, repetitions, routerTypeConf.SIMTIME))
@@ -164,12 +166,15 @@ for rt_i, routerType in enumerate(routerTypes):
                         graph.addNode(node)
 
                 if routerTypeConf.MOVEMENT_ENABLED and SHOW_GRAPH:
-                    env.process(runGraphUpdates(env, graph, nodes))
+                    env.process(runGraphUpdates(env, graph, nodes, conf.ONE_MIN_INTERVAL))
 
                 totalPairs, symmetricLinks, asymmetricLinks, noLinks = setupAsymmetricLinks(routerTypeConf, nodes)
 
                 # Start simulation
                 env.run(until=routerTypeConf.SIMTIME)
+
+                num_moving = sum([1 for n in nodes if n.isMoving])
+                print(f"{num_moving} mobile nodes")
 
                 # Calculate stats
                 nrSensed = sum([1 for pkt in packets for n in nodes if pkt.sensedByN[n.nodeid]])

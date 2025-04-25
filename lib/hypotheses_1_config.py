@@ -1,7 +1,7 @@
 from enum import Enum
 import numpy as np
 
-class Config:
+class Config1:
 
     class ROUTER_TYPE(Enum):
         MANAGED_FLOOD = 'MANAGED_FLOOD'
@@ -99,7 +99,7 @@ class Config:
 
         # Set this to True to enable the asymmetric link model
         # Adds a random offset to the link quality of each link
-        self.MODEL_ASYMMETRIC_LINKS = False
+        self.MODEL_ASYMMETRIC_LINKS = True
         self.MODEL_ASYMMETRIC_LINKS_MEAN = 0
         self.MODEL_ASYMMETRIC_LINKS_STDDEV = 3
         # Stores the offset for each link

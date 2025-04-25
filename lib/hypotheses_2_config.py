@@ -1,7 +1,7 @@
 from enum import Enum
 import numpy as np
 
-class Config:
+class Config2:
 
     class ROUTER_TYPE(Enum):
         MANAGED_FLOOD = 'MANAGED_FLOOD'
@@ -99,7 +99,7 @@ class Config:
 
         # Set this to True to enable the asymmetric link model
         # Adds a random offset to the link quality of each link
-        self.MODEL_ASYMMETRIC_LINKS = False
+        self.MODEL_ASYMMETRIC_LINKS = True
         self.MODEL_ASYMMETRIC_LINKS_MEAN = 0
         self.MODEL_ASYMMETRIC_LINKS_STDDEV = 3
         # Stores the offset for each link
@@ -118,7 +118,7 @@ class Config:
         # The average number of meters a human drives in a minute
         self.DRIVING_METERS_PER_MIN = 1500
         # The % of nodes that end up mobile in the simulation 0.4 = ~40%
-        self.APPROX_RATIO_NODES_MOVING = 0.0
+        self.APPROX_RATIO_NODES_MOVING = 1
         # The % of mobile nodes that have GPS enabled 0.5 = 50%
         self.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED = 0
         # The selected movement speed

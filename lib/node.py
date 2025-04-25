@@ -76,6 +76,7 @@ class MeshNode():
        # One transmitter per node (essentially a lock). Only one process can use
         self.transmitter = simpy.Resource(env, 1)
 
+
         # start mobility if enabled
         if self.conf.MOVEMENT_ENABLED and self.moveRng.random() <= self.conf.APPROX_RATIO_NODES_MOVING:
             self.isMoving = True

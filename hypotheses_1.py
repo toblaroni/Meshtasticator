@@ -14,7 +14,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from lib.hypotheses_1_config import Config
+from lib.hypotheses_1_config import Config1
 from lib.common import *
 from lib.packet import *
 from lib.mac import *
@@ -23,7 +23,7 @@ from lib.node import *
 from lib.batch_common import *
 
 # Debug
-conf = Config()
+conf = Config1()
 VERBOSE = False
 SHOW_GRAPH = False
 SAVE = True
@@ -39,8 +39,8 @@ else:
 ####### INDEPENDENT VARIABLES ########
 #######################################
 
-repetitions = 2
-numberOfNodes = [ 3 ]
+repetitions = 20
+numberOfNodes = [ 5, 25, 50, 100, 200 ]
 gossip_p_vals = [ 0.55, 0.6, 0.65, 0.7, 0.75 ]
 gossip_k_vals = [ 1, 2, 4 ]
 
@@ -98,7 +98,7 @@ for rt_i, routerType in enumerate(routerTypes):
         for rep in range(repetitions):
             # For the highest degree of separation between runs, config
             # should be instantiated every repetition for this router type and node number
-            routerTypeConf = Config()
+            routerTypeConf = Config1()
             routerTypeConf.SELECTED_ROUTER_TYPE = routerTypeLabel
             routerTypeConf.NR_NODES = nrNodes
 

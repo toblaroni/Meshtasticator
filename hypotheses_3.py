@@ -14,7 +14,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from lib.hypotheses_3_config import Config
+from lib.hypotheses_3_config import Config3
 from lib.common import *
 from lib.packet import *
 from lib.mac import *
@@ -23,7 +23,7 @@ from lib.node import *
 from lib.batch_common import *
 
 # Debug
-conf = Config()
+conf = Config3()
 VERBOSE = False
 SHOW_GRAPH = False
 SAVE = True
@@ -61,7 +61,7 @@ positions_cache = gen_random_positions(conf, repetitions, numberOfNodes)
 
 # Initialize dictionaries for each router type, individual dictionaries for 
 for rt in routerTypes:
-    collisions_dict
+    collisions_dict[rt] = []
 
 ###########################################################
 # Main simulation loops
@@ -86,7 +86,7 @@ for rt_i, routerType in enumerate(routerTypes):
         for rep in range(repetitions):
             # For the highest degree of separation between runs, config
             # should be instantiated every repetition for this router type and node number
-            routerTypeConf = Config()
+            routerTypeConf = Config3()
             routerTypeConf.SELECTED_ROUTER_TYPE = routerTypeLabel
             routerTypeConf.NR_NODES = nrNodes
 
@@ -165,7 +165,9 @@ for rt_i, routerType in enumerate(routerTypes):
     collisionsStds_dict[routerType] = collisionsStds
 
 
-# Save to json file for easy re-graphing
+###################################################
+# Save to json file
+###################################################
 results = {
     "collisions": collisions_dict,
     "collisions_stds": collisionsStds_dict,
@@ -199,15 +201,4 @@ for rt_info in routerTypes:
 with open(os.path.join(output_dir, "data.json"), "w") as f:
     json.dump(results_data, f, indent=4)
 
-###########################################################
-# Plotting
-###########################################################
 
-def router_type_label(rt_info):
-    rt, p, k = rt_info
-    if rt == conf.ROUTER_TYPE.MANAGED_FLOOD:
-        return "Managed Flood"
-    elif rt == conf.ROUTER_TYPE.GOSSIP:
-        return f"GOSSIP({p}, {k})"
-    else:
-        return str(rt)
