@@ -107,7 +107,6 @@ for rt_i, routerType in enumerate(routerTypes):
                 # For the highest degree of separation between runs, config
                 # should be instantiated every repetition for this router type and node number
                 routerTypeConf = Config2()
-                print(routerTypeConf.MOVEMENT_ENABLED)
                 routerTypeConf.SELECTED_ROUTER_TYPE = routerTypeLabel
                 routerTypeConf.NR_NODES = numberOfNodes[0]
 
@@ -139,6 +138,9 @@ for rt_i, routerType in enumerate(routerTypes):
                 packetsAtN = [[] for _ in range(routerTypeConf.NR_NODES)]
                 messageSeq = {"val": 0}
 
+                # Since positions are random, we can make the first x number mobile to guarantee the ratio of mobile nodes
+                num_mobile_nodes = round(routerTypeConf.NR_NODES * mobility_ratio)
+
                 if SHOW_GRAPH:
                     graph = Graph(routerTypeConf)
                 for nodeId in range(routerTypeConf.NR_NODES):
@@ -156,11 +158,17 @@ for rt_i, routerType in enumerate(routerTypes):
                         'antennaGain': routerTypeConf.GL
                     }
 
+                    if nodeId < num_mobile_nodes:
+                        isMoving = True
+                    else:
+                        isMoving = False
+
                     node = MeshNode(
                         routerTypeConf, nodes, env, bc_pipe, nodeId, routerTypeConf.PERIOD,
                         messages, packetsAtN, packets, delays, nodeConfig,
-                        messageSeq, verboseprint, rep_seed=rep
+                        messageSeq, verboseprint, rep_seed=rep, isMoving=isMoving
                     )
+
                     nodes.append(node)
                     if SHOW_GRAPH:
                         graph.addNode(node)
@@ -172,9 +180,6 @@ for rt_i, routerType in enumerate(routerTypes):
 
                 # Start simulation
                 env.run(until=routerTypeConf.SIMTIME)
-
-                num_moving = sum([1 for n in nodes if n.isMoving])
-                print(f"{num_moving} mobile nodes")
 
                 # Calculate stats
                 nrSensed = sum([1 for pkt in packets for n in nodes if pkt.sensedByN[n.nodeid]])
@@ -238,80 +243,3 @@ for rt_info in routerTypes:
 with open(os.path.join(output_dir, "data.json"), "w") as f:
     json.dump(results_data, f, indent=4)
 
-
-###########################################################
-# Plotting
-###########################################################
-
-def router_type_label(rt_info):
-    rt, p, k = rt_info
-    if rt == conf.ROUTER_TYPE.MANAGED_FLOOD:
-        return "Managed Flood"
-    elif rt == conf.ROUTER_TYPE.GOSSIP:
-        return f"GOSSIP({p}, {k})"
-    else:
-        return str(rt)
-
-###########################################################
-# Choose a baseline router type for comparison
-###########################################################
-baselineRt = (conf.ROUTER_TYPE.MANAGED_FLOOD, None, None)
-
-# Create one figure per k value
-for k in gossip_k_vals:
-    fig, axes = plt.subplots(1, len(movement_speeds), figsize=(15, 5), sharey=True)
-    fig.suptitle(f'Coverage (k={k})', y=1.05)
-
-    # Plot for each movement speed
-    for ax_idx, movement_speed in enumerate(movement_speeds):
-        ax = axes[ax_idx]
-
-        # Plot Managed Flood baseline
-        baseline_vals = [
-            reachability_dict[baselineRt][(mr, movement_speed)][0]
-            for mr in mobility_ratios
-        ]
-        ax.plot(
-            mobility_ratios, baseline_vals,
-            '--', color='gray', label='Managed Flood'
-        )
-
-        # Plot GOSSIP results for this k
-        for p in gossip_p_vals:
-            rt_info = (conf.ROUTER_TYPE.GOSSIP, p, k)
-            if rt_info not in reachability_dict:
-                continue
-
-            vals = [
-                reachability_dict[rt_info][(mr, movement_speed)][0]
-                for mr in mobility_ratios
-            ]
-            stds = [
-                reachabilityStds_dict[rt_info][(mr, movement_speed)][0]
-                for mr in mobility_ratios
-            ]
-
-            ax.errorbar(
-                mobility_ratios, vals, yerr=stds,
-                marker='o', linestyle='-',
-                label=f'p={p}'
-            )
-
-        ax.set_xlabel('Mobility Ratio')
-        ax.set_title(f'Speed: {movement_speed} m/min')
-        ax.grid(True, alpha=0.3)
-
-    axes[0].set_ylabel(f'Coverage (%)')
-
-    # Add legend outside subplots
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(
-        handles, labels,
-        loc='center left',
-        bbox_to_anchor=(1.05, 0.5),
-        frameon=False
-    )
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"Coverage_k{k}.png"), bbox_inches='tight')
-    plt.close()

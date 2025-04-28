@@ -8,7 +8,7 @@ from lib.packet import *
 
 
 class MeshNode():
-    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint, rep_seed=0):
+    def __init__(self, conf, nodes, env, bc_pipe, nodeid, period, messages, packetsAtN, packets, delays, nodeConfig, messageSeq, verboseprint, rep_seed=0, isMoving=False):
         self.conf = conf
         self.nodeid = nodeid
         self.verboseprint = verboseprint
@@ -55,7 +55,7 @@ class MeshNode():
         self.airUtilization = 0
         self.droppedByDelay = 0
         self.rebroadcastPackets = 0
-        self.isMoving = False
+        self.isMoving = isMoving
         self.gpsEnabled = False
         # Track last broadcast position/time
         self.lastBroadcastX = self.x
@@ -76,10 +76,8 @@ class MeshNode():
        # One transmitter per node (essentially a lock). Only one process can use
         self.transmitter = simpy.Resource(env, 1)
 
-
         # start mobility if enabled
-        if self.conf.MOVEMENT_ENABLED and self.moveRng.random() <= self.conf.APPROX_RATIO_NODES_MOVING:
-            self.isMoving = True
+        if self.conf.MOVEMENT_ENABLED and self.isMoving:
             if self.moveRng.random() <= self.conf.APPROX_RATIO_OF_NODES_MOVING_W_GPS_ENABLED:
                 self.gpsEnabled = True
 
