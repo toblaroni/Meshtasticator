@@ -9,6 +9,10 @@ class Hypotheses1:
     def __init__(self, data_file, output_dir):
         self.output_dir = output_dir
 
+        self.label_fontsize = 16
+        self.title_fontsize = 20
+        self.axis_fontsize = 14
+
         try:
             with open(data_file) as f:
                 self.data = json.load(f)
@@ -24,96 +28,167 @@ class Hypotheses1:
 
 
     def plot_all(self):
-        self.plot_reachability_comparison()
-        self.plot_redundancy_comparison()
+        self.plot_coverage_by_p()
+        self.plot_redundancy_by_p()
+        self.plot_coverage_by_k()
+        self.plot_redundancy_by_k()
+        self.plot_std_dev()
 
+    def plot_coverage_by_k(self):
+        results_dir = os.path.join(self.output_dir, "coverage_by_k")
+        os.makedirs(results_dir, exist_ok=True)
 
-    def plot_reachability_comparison(self):
-        # Create individual plots for each k value
         for k in self.k_values:
+            gossip_k_entries = [entry for entry in self.gossip_data if entry["k"] == k]
+            
+            # Plot Reachability vs Network Size
             plt.figure(figsize=(8, 6))
-            
-            # Plot Managed Flooding
             plt.plot(
-                self.node_nums,
-                self.managed_flood_data['reachability'],
-                '-o',
-                color='black',
-                linewidth=2,
-                markersize=8,
-                label='Managed Flooding'
+                self.node_nums, self.managed_flood_data["reachability"], 
+                label="Managed Flood", marker="o", linestyle="--"
             )
-
-            # Plot GOSSIP configurations for this k
-            for entry in self.gossip_data:
-                if entry['k'] == k:
-                    p = entry['p']
-                    plt.plot(
-                        self.node_nums,
-                        entry['reachability'],
-                        '--o',
-                        alpha=0.8,
-                        markersize=6,
-                        label=f'GOSSIP p={p}'
-                    )
-
-            # Configure plot
-            plt.xscale('log')
-            plt.xticks(self.node_nums)
-            plt.gca().get_xaxis().set_major_formatter(plt.ScalarFormatter())
-            plt.xlabel('Number of Nodes (log scale)')
-            plt.ylabel('Reachability (%)')
-            plt.title(f'Reachability Comparison (k={k})')
-            plt.legend()
-            plt.grid(True, which='both', linestyle='--')
-            
-            # Save and close
-            plt.savefig(os.path.join(self.output_dir, f'hypothesis1_reachability_k{k}.png'), bbox_inches='tight')
+            for entry in gossip_k_entries:
+                plt.plot(
+                    self.node_nums, entry["reachability"], 
+                    marker="o", label=f"GOSSIP p={entry['p']:.2f}"
+                )
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Coverage (%)", fontsize=self.label_fontsize)
+            plt.title(f"Coverage Comparison (k={k})", fontsize=self.title_fontsize)
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.legend(fontsize=self.axis_fontsize)
+            plt.grid(True)
+            plt.savefig(os.path.join(results_dir, f"coverage_k_{k}.png"))
             plt.close()
 
 
-    def plot_redundancy_comparison(self):
+    def plot_redundancy_by_k(self):
+        results_dir = os.path.join(self.output_dir, "redundancy_by_k")
+        os.makedirs(results_dir, exist_ok=True)
 
-        # Create individual plots for each k value
         for k in self.k_values:
+            gossip_k_entries = [entry for entry in self.gossip_data if entry["k"] == k]
+
+            # Plot Redundancy vs Network Size
+            plt.figure(figsize=(8, 6))
+            plt.plot(self.node_nums, self.managed_flood_data["redundancy"], 
+                     label="Managed Flood", marker="o", linestyle="--")
+            for entry in gossip_k_entries:
+                plt.plot(self.node_nums, entry["redundancy"], 
+                         marker="o", label=f"GOSSIP p={entry['p']:.2f}")
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Redundancy (%)", fontsize=self.label_fontsize)
+            plt.title(f"Redundancy Comparison (k={k})", fontsize=self.title_fontsize)
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.legend(fontsize=self.axis_fontsize)
+            plt.grid(True)
+            plt.savefig(os.path.join(results_dir, f"redundancy_k_{k}.png"))
+            plt.close()
+
+    def plot_coverage_by_p(self):
+        results_dir = os.path.join(self.output_dir, "coverage_by_p")
+        os.makedirs(results_dir, exist_ok=True)
+
+        for p in self.p_values:
+            gossip_p_entries = [entry for entry in self.gossip_data if entry["p"] == p]
+            
+            # Plot Reachability vs Network Size for different k's
+            plt.figure(figsize=(8, 6))
+            plt.plot(
+                self.node_nums, self.managed_flood_data["reachability"], 
+                label="Managed Flood", marker="o", linestyle="--"
+            )
+            for entry in gossip_p_entries:
+                plt.plot(
+                    self.node_nums, entry["reachability"], 
+                    marker="o", label=f"GOSSIP k={entry['k']}"
+                )
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Reachability (%)", fontsize=self.label_fontsize)
+            plt.title(f"Reachability Comparison (p={p})", fontsize=self.title_fontsize)
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.legend(fontsize=self.axis_fontsize)
+            plt.grid(True)
+            plt.savefig(os.path.join(results_dir, f"coverage_p_{p:.2f}.png"))
+            plt.close()
+
+    def plot_redundancy_by_p(self):
+        results_dir = os.path.join(self.output_dir, "redundancy_by_p")
+        os.makedirs(results_dir, exist_ok=True)
+
+        for p in self.p_values:
+            gossip_p_entries = [entry for entry in self.gossip_data if entry["p"] == p]
+
+            # Plot Redundancy vs Network Size for different k's
+            plt.figure(figsize=(8, 6))
+            plt.plot(self.node_nums, self.managed_flood_data["redundancy"], 
+                     label="Managed Flood", marker="o", linestyle="--")
+            for entry in gossip_p_entries:
+                plt.plot(self.node_nums, entry["redundancy"], 
+                         marker="o", label=f"GOSSIP k={entry['k']}")
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Redundancy (%)", fontsize=self.label_fontsize)
+            plt.title(f"Redundancy Comparison (p={p})", fontsize=self.title_fontsize)
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.legend(fontsize=self.axis_fontsize)
+            plt.grid(True)
+            plt.savefig(os.path.join(results_dir, f"redundancy_p_{p:.2f}.png"))
+            plt.close()
+
+    def plot_std_dev(self):
+        results_dir = os.path.join(self.output_dir, "std_dev")  # Changed directory name
+        os.makedirs(results_dir, exist_ok=True)
+        
+        for k in self.k_values:
+            gossip_k_entries = [entry for entry in self.gossip_data if entry["k"] == k]
+
+            # Plot Reachability Standard Deviation
             plt.figure(figsize=(8, 6))
             
-            # Plot Managed Flooding
+            # Directly use std values instead of squaring
+            mf_reachability_std = self.managed_flood_data["reachability_stds"]  # No squaring
             plt.plot(
-                self.node_nums,
-                self.managed_flood_data['redundancy'],
-                '-o',
-                color='black',
-                linewidth=2,
-                markersize=8,
-                label='Managed Flooding'
+                self.node_nums, mf_reachability_std, 
+                label="Managed Flood", marker="o", linestyle="--"
             )
 
-            # Plot GOSSIP configurations for this k
-            for entry in self.gossip_data:
-                if entry['k'] == k:
-                    p = entry['p']
-                    plt.plot(
-                        self.node_nums,
-                        entry['redundancy'],
-                        '--o',
-                        alpha=0.8,
-                        markersize=6,
-                        label=f'GOSSIP p={p}'
-                    )
+            for entry in gossip_k_entries:
+                gossip_reachability_std = entry["reachability_stds"]  # No squaring
+                plt.plot(
+                    self.node_nums, gossip_reachability_std, 
+                    marker="o", label=f"GOSSIP p={entry['p']}"
+                )
 
-            # Configure plot
-            plt.xscale('log')
-            plt.xticks(self.node_nums)
-            plt.gca().get_xaxis().set_major_formatter(plt.ScalarFormatter())
-            plt.xlabel('Number of Nodes (log scale)')
-            plt.ylabel('Redundancy (%)')
-            plt.title(f'Redundancy Comparison (k={k})')
-            plt.legend()
-            plt.grid(True, which='both', linestyle='--')
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Reachability Std Dev", fontsize=self.label_fontsize)  # Fixed label
+            plt.title(f"Reachability Standard Deviation (k={k})", fontsize=self.title_fontsize)  # Fixed title
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.legend(fontsize=self.axis_fontsize)
+            plt.grid(True)
+            plt.savefig(os.path.join(results_dir, f"reachability_std_k_{k}.png"))  # Fixed filename
+            plt.close()
+
+            # Plot Redundancy Standard Deviation
+            plt.figure(figsize=(8, 6))
             
-            # Save and close
-            plt.savefig(os.path.join(self.output_dir, f'hypothesis1_redundancy_k{k}.png'), bbox_inches='tight')
+            mf_redundancy_std = self.managed_flood_data["redundancy_stds"]  # No squaring
+            plt.plot(
+                self.node_nums, mf_redundancy_std, 
+                label="Managed Flood", marker="o", linestyle="--"
+            )
+            for entry in gossip_k_entries:
+                gossip_redundancy_std = entry["redundancy_stds"]  # No squaring
+                plt.plot(
+                    self.node_nums, gossip_redundancy_std, 
+                    marker="o", label=f"GOSSIP p={entry['p']}"
+                )
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Redundancy Std Dev", fontsize=self.label_fontsize)  # Fixed label
+            plt.title(f"Redundancy Standard Deviation (k={k})", fontsize=self.title_fontsize)  # Fixed title
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.legend(fontsize=self.axis_fontsize)
+            plt.grid(True)
+            plt.savefig(os.path.join(results_dir, f"redundancy_std_k_{k}.png"))  # Fixed filename
             plt.close()
 
 class Hypotheses2:
@@ -367,7 +442,7 @@ class Hypotheses2:
         plt.xlabel("Movement Speed (m/min)", fontsize=self.label_fontsize)
         plt.ylabel("Relative Difference (Coverage %)", fontsize=self.label_fontsize)
         plt.title(
-            "Relative Percentage Coverage Difference: Best GOSSIP1 vs Managed Flooding",
+            "Relative Percentage Coverage Difference: Best GOSSIP1 vs Managed Flood",
             fontsize=self.title_fontsize
         )
         plt.grid(True, linestyle="--", alpha=0.7)
@@ -424,14 +499,12 @@ class Hypotheses2:
             gossip_stds = [
                 next(entry["reachability_stds"] for entry in gossip_data if entry["movement_speed"] == speed)
                 for speed in speeds
-            ]
-            gossip_variance = [ stds**2 for stds in gossip_stds ] 
-            mf_variance = [ stds**2 for stds in mf_stds ] 
 
+            ]
             # Plotting
             plt.plot(
                 speeds,
-                mf_variance,
+                mf_stds,
                 marker='o',
                 label="Managed Flood",
                 linewidth=2,
@@ -441,7 +514,7 @@ class Hypotheses2:
 
             plt.plot(
                 speeds,
-                gossip_variance,
+                gossip_stds,
                 marker='s',
                 linestyle='--',
                 label=f"GOSSIP1(p={best_p},k={best_k})",
@@ -451,9 +524,9 @@ class Hypotheses2:
             )
 
             plt.xlabel("Movement Speed (m/min)", fontsize=self.label_fontsize)
-            plt.ylabel("Variance of Coverage (%)", fontsize=self.label_fontsize)
+            plt.ylabel("Standard Deviation of Coverage (%)", fontsize=self.label_fontsize)
             plt.title(
-                f"Coverage Variance Comparison\nMobility Ratio = {int(movement_ratio * 100)}%",
+                f"Coverage Std. Deviation Comparison\nMobility Ratio = {int(movement_ratio * 100)}%",
                 fontsize=self.title_fontsize
             )
             plt.xticks(self.movement_speeds, fontsize=self.axis_fontsize)
@@ -471,8 +544,9 @@ class Hypotheses3:
     def __init__(self, data_file, output_dir):
         self.output_dir = output_dir
 
-        self.label_fontsize = 12
-        self.title_fontsize = 14
+        self.label_fontsize = 16
+        self.title_fontsize = 22
+        self.axis_fontsize = 14
 
         try:
             with open(data_file) as f:
@@ -489,119 +563,250 @@ class Hypotheses3:
 
 
     def plot_all(self):
-        self.plot_gossip_vs_managed()
-        self.plot_collisions_vs_p()
-        self.plot_collisions_vs_k()
+        self.plot_comparisons()
         self.plot_heatmap_pk()
-    
-    def plot_gossip_vs_managed(self):
-        results_dir = os.path.join(self.output_dir, "gossip_vs_managed")
+        self.plot_consolidated_by_k()
+        self.plot_consolidated_by_p()
+        self.plot_relative_difference_by_p()
 
-        if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
+    def plot_comparisons(self):
+        results_dir = os.path.join(self.output_dir, "comparisons")
+        os.makedirs(results_dir, exist_ok=True)
 
-        for config in self.gossip_data:
-            p = config['p']
-            k = config['k']
+        # Plot each GOSSIP configuration against Managed Flooding
+        for gossip_entry in self.gossip_data:
+            p = gossip_entry["p"]
+            k = gossip_entry["k"]
+            gossip_collisions = gossip_entry["collisions"]
+            gossip_stds = gossip_entry["collisions_stds"]
 
-            plt.figure(figsize=(12, 6))
-
-            plt.plot(
+            plt.figure(figsize=(8, 6))
+            
+            # Plot Managed Flooding
+            plt.errorbar(
                 self.node_nums,
-                self.managed_flood_data['collisions'],
-                label='Managed Flood',
-                linestyle='-',
+                self.managed_flood_data["collisions"],
+                yerr=self.managed_flood_data["collisions_stds"],
+                label="Managed Flood",
                 marker='o',
-                color='#2c3e50',
-                linewidth=2,
-                markersize=8
+                linestyle='--',
+                capsize=5
             )
 
+            # Plot GOSSIP
+            plt.errorbar(
+                self.node_nums,
+                gossip_collisions,
+                yerr=gossip_stds,
+                label=f"GOSSIP (p={p}, k={k})",
+                marker='s',
+                linestyle='-',
+                capsize=5
+            )
+
+            # Customize plot
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Collision Rate", fontsize=self.label_fontsize)
+            plt.title(
+                f"Collision Rates: GOSSIP(p={p}, k={k}) vs Managed Flood",
+                fontsize=self.title_fontsize
+            )
+            plt.legend()
+            plt.grid(True)
+            plt.xticks(self.node_nums)
+
+            # Save plot
+            filename = f"hypothesis3_p{p}_k{k}.png"
+            plt.savefig(
+                os.path.join(results_dir, filename),
+                bbox_inches="tight"
+            )
+            plt.close()
+
+    
+    def plot_consolidated_by_k(self):
+        results_dir = os.path.join(self.output_dir, "plot_by_k")
+        os.makedirs(results_dir, exist_ok=True)
+        
+        # Create one plot per k-value, showing all p-variants vs Managed Flooding
+        for k in self.k_values:
+            plt.figure(figsize=(8, 6))
+            
+            # Plot Managed Flooding (baseline)
             plt.plot(
                 self.node_nums,
-                config['collisions'],
-                label=f'GOSSIP (p={p}, k={k})',
+                self.managed_flood_data["collisions"],
+                label="Managed Flood",
+                marker='o',
                 linestyle='--',
-                marker='s',
-                color='#e74c3c',
-                linewidth=2,
-                markersize=8
+                color='black',
+                linewidth=2
             )
 
-            plt.xlabel('Number of Nodes', fontsize=self.label_fontsize)
-            plt.ylabel('Collision Rate (%)', fontsize=self.label_fontsize)
-            plt.title(f'Collision Rate Comparison: Managed Flood vs GOSSIP (p={p}, k={k})', fontsize=self.title_fontsize)
-            plt.xticks(self.node_nums, labels=self.node_nums)  # Explicit x-ticks
-            plt.grid(True, linestyle='--', alpha=0.7)
-            plt.legend()
+            # Plot all GOSSIP entries for this k with different p
+            p_values = sorted({entry["p"] for entry in self.gossip_data})
+            colors = plt.cm.viridis_r(np.linspace(0, 1, len(p_values)))  # Color gradient for p
 
-            # Highlight smaller networks
-            ax = plt.gca()
-            for x in [3, 5, 10]:
-                ax.axvline(x=x, color='#f39c12', linestyle=':', alpha=0.4, linewidth=3)
+            for p, color in zip(p_values, colors):
+                # Extract data for this (k, p)
+                entries = [e for e in self.gossip_data if e["k"] == k and e["p"] == p]
+                if not entries:
+                    continue
+                data = entries[0]
+                
+                plt.plot(
+                    self.node_nums,
+                    data["collisions"],
+                    label=f"GOSSIP (p={p})",
+                    marker='s',
+                    linestyle='-',
+                    color=color,
+                    linewidth=1
+                )
+
+            # Customize plot
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Collision Rate", fontsize=self.label_fontsize)
+            plt.title(
+                f"Collision Rates for k={k}: GOSSIP vs Managed Flood",
+                fontsize=self.title_fontsize
+            )
+
+            plt.legend(
+                fontsize=self.label_fontsize
+            ) 
+
+            plt.grid(True)
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.yticks(fontsize=self.axis_fontsize)
+
+            # Save plot
+            filename = f"hypothesis3_k{k}.png"
+            plt.savefig(
+                os.path.join(results_dir, filename),
+                bbox_inches="tight"
+            )
+            plt.close()
+
+
+    def plot_consolidated_by_p(self):
+        results_dir = os.path.join(self.output_dir, "plot_by_p")
+        os.makedirs(results_dir, exist_ok=True)
+        
+        # Create one plot per k-value, showing all p-variants vs Managed Flooding
+        for p in self.p_values:
+            plt.figure(figsize=(8, 6))
+            
+            # Plot Managed Flooding (baseline)
+            plt.plot(
+                self.node_nums,
+                self.managed_flood_data["collisions"],
+                label="Managed Flood",
+                marker='o',
+                linestyle='--',
+                color='black',
+                linewidth=2
+            )
+
+            # Plot all GOSSIP entries for this k with different p
+            colors = plt.cm.viridis_r(np.linspace(0, 1, len(self.k_values)))  # Color gradient for p
+
+            for k, color in zip(self.k_values, colors):
+                # Extract data for this (k, p)
+                entries = [e for e in self.gossip_data if e["k"] == k and e["p"] == p]
+                if not entries:
+                    continue
+                data = entries[0]
+                
+                plt.plot(
+                    self.node_nums,
+                    data["collisions"],
+                    label=f"GOSSIP (k={k})",
+                    marker='s',
+                    linestyle='-',
+                    color=color,
+                    linewidth=1
+                )
+
+            # Customize plot
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Collision Rate", fontsize=self.label_fontsize)
+            plt.title(
+                f"Collision Rates: GOSSIP vs Managed Flood\np={p}",
+                fontsize=self.title_fontsize
+            )
+
+            plt.legend(fontsize=self.label_fontsize) 
+
+            plt.grid(True)
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.yticks(fontsize=self.axis_fontsize)
+
+            # Save plot
+            filename = f"hypothesis3_p{p}.png"
+            plt.savefig(
+                os.path.join(results_dir, filename),
+                bbox_inches="tight"
+            )
+            plt.close()
+
+
+    def plot_relative_difference_by_p(self):
+        results_dir = os.path.join(self.output_dir, "relative_diff_by_p")
+        os.makedirs(results_dir, exist_ok=True)
+
+        mf_collisions = np.array(self.managed_flood_data["collisions"])
+
+        for p in self.p_values:
+            plt.figure(figsize=(8, 6))
+
+            # zero‐line for reference
+            plt.axhline(0, color='black', linestyle='--', linewidth=1)
+
+            # color map across k-values
+            colors = plt.cm.viridis_r(np.linspace(0, 1, len(self.k_values)))
+
+            for k, color in zip(self.k_values, colors):
+                # find the gossip entry for this (p, k)
+                entry = next((e for e in self.gossip_data if e["p"] == p and e["k"] == k), None)
+                if entry is None:
+                    continue
+
+                gossip_coll = np.array(entry["collisions"])
+                # compute 100*(gossip - MF)/MF
+                rel_diff = 100 * (gossip_coll - mf_collisions) / mf_collisions
+
+                plt.plot(
+                    self.node_nums,
+                    rel_diff,
+                    marker='s',
+                    linestyle='-',
+                    color=color,
+                    linewidth=2,
+                    markersize=6,
+                    label=f"k={k}"
+                )
+
+            plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
+            plt.ylabel("Relative Collision Rate Difference (%)", fontsize=self.label_fontsize)
+            plt.title(
+                f"Relative Collision Rate Difference vs Managed Flood\n(p={p})",
+                fontsize=self.title_fontsize
+            )
+            plt.grid(True, linestyle="--", alpha=0.6)
+
+            plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            plt.yticks(fontsize=self.axis_fontsize)
+
+            plt.legend(
+                title="GOSSIP1 variants",
+                fontsize=self.label_fontsize - 1
+            )
 
             plt.tight_layout()
-            plt.savefig(os.path.join(results_dir, f'gossip_p{p}_k{k}.png'), dpi=300)
+            filename = f"hypothesis3_rel_diff_p{p}.png"
+            plt.savefig(os.path.join(results_dir, filename), dpi=300, bbox_inches="tight")
             plt.close()
-        
-    
-    def plot_collisions_vs_p(self):
-        results_dir = os.path.join(self.output_dir, "collisions_vs_p")
-
-        if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
-
-        for k in self.k_values:
-            for node_idx, num_nodes in enumerate(self.node_nums):
-
-                collisions_per_p = []
-
-                for p_val in self.p_values:
-                    match = next((entry for entry in self.gossip_data if entry["p"] == p_val and entry["k"] == k), None)
-                    if match:
-                        collisions_per_p.append(match["collisions"][node_idx])
-                    else:
-                        collisions_per_p.append(None)
-
-                plt.figure(figsize=(7, 5))
-                plt.title(f"Collison Rate vs P Value (k={k}, {num_nodes} nodes)", fontsize=self.title_fontsize)
-                plt.xlabel("P Value", fontsize=self.label_fontsize)
-                plt.ylabel("Collision Rate (%)", fontsize=self.label_fontsize)
-                plt.grid(True, linestyle='--', alpha=0.7)
-
-                plt.plot(self.p_values, collisions_per_p)
-                plt.xticks(self.p_values)
-                plt.tight_layout()
-                plt.savefig(os.path.join(results_dir, f"collisions_vs_p_k{k}_{num_nodes}nodes.png"))
-                plt.close()
-
-
-    def plot_collisions_vs_k(self):
-        results_dir = os.path.join(self.output_dir, "collisions_vs_k")
-
-        if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
-
-        # Group by p value and compare the effects of k
-        for p_val in self.p_values:
-            for node_idx, node_num in enumerate(self.node_nums):
-                collisions_per_k = []
-
-                for k in self.k_values:
-                    match = next((entry for entry in self.gossip_data if entry["p"] == p_val and entry["k"] == k), None)
-                    collisions_per_k.append(match["collisions"][node_idx])
-
-                plt.figure(figsize=(7, 5))
-                plt.title(f"Collison Rate vs K Value (p={p_val}, {node_num} nodes)", fontsize=self.title_fontsize)
-                plt.xlabel("K Value", fontsize=self.label_fontsize)
-                plt.ylabel("Collision Rate (%)", fontsize=self.label_fontsize)
-                plt.grid(True, linestyle='--', alpha=0.7)
-
-                plt.plot(self.k_values, collisions_per_k)
-                plt.xticks(self.k_values)
-                plt.tight_layout()
-                plt.savefig(os.path.join(results_dir, f"collisions_vs_k_p{p_val}_{node_num}nodes.png"))
-                plt.close()
 
 
     def plot_heatmap_pk(self):
@@ -620,15 +825,17 @@ class Hypotheses3:
 
             plt.figure(figsize=(8, 6))
             plt.imshow(collision_matrix, cmap='viridis', origin='lower')
-            plt.xticks(np.arange(len(k_vals)), labels=k_vals)
-            plt.yticks(np.arange(len(p_vals)), labels=p_vals)
-            plt.colorbar(label='Collision Rate (%)')
-            plt.xlabel('k')
-            plt.ylabel('p')
-            plt.title(f'Collision Rate Heatmap (Nodes={node_num})')
+            plt.xticks(np.arange(len(k_vals)), labels=k_vals, fontsize=self.axis_fontsize+3)
+            plt.yticks(np.arange(len(p_vals)), labels=p_vals, fontsize=self.axis_fontsize+3)
+
+            cbar = plt.colorbar(label='Collision Rate (%)')
+            cbar.ax.yaxis.label.set_fontsize(self.label_fontsize)
+
+            plt.xlabel('k', fontsize=self.label_fontsize+3)
+            plt.ylabel('p', fontsize=self.label_fontsize+3)
+            plt.title(f'Collision Rate Heatmap\n{node_num} Nodes', fontsize=self.title_fontsize)
             plt.savefig(os.path.join(results_dir, f'heatmap_{node_num}nodes.png'))
             plt.close()
-
 
 
 def main():
@@ -646,7 +853,6 @@ def main():
     h3 = Hypotheses3(hypotheses3_data, output_dir3)
 
     h1.plot_all()
-    h2.plot_all()
 
 if __name__ == "__main__":
     main()

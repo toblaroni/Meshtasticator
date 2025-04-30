@@ -20,7 +20,7 @@ from lib.packet import *
 from lib.mac import *
 from lib.discrete_event import *
 from lib.node import *
-from common
+from lib.batch_common import *
 
 # TODO - There should really be two separate concepts here, a STATE and a CONFIG
 # today, the config also maintains state
@@ -39,10 +39,10 @@ SAVE = True
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 
 # How many times should each combination run
-repetitions = 3
+repetitions = 100
 
 # How many nodes should be simulated in each test
-numberOfNodes = [ 250 ]
+numberOfNodes = [ 5 ]
 
 gossip_p = float(sys.argv[1])
 gossip_k = int(sys.argv[2])
@@ -202,7 +202,7 @@ for rt_i, routerType in enumerate(routerTypes):
             bc_pipe = BroadcastPipe(env)
 
             # Start the progress-logging process
-            env.process(simulationProgress(env, rep, repetitions, routerTypeConf.SIMTIME))
+            env.process(simulationProgress(env, conf, rep, repetitions, routerTypeConf.SIMTIME))
 
             # Retrieve the pre-generated positions for this (nrNodes, rep)
             coords = positions_cache[(nrNodes, rep)]
@@ -234,7 +234,7 @@ for rt_i, routerType in enumerate(routerTypes):
                 node = MeshNode(
                     routerTypeConf, nodes, env, bc_pipe, nodeId, routerTypeConf.PERIOD,
                     messages, packetsAtN, packets, delays, nodeConfig,
-                    messageSeq, verboseprint
+                    messageSeq, verboseprint, rep_seed=rep
                 )
                 nodes.append(node)
                 if SHOW_GRAPH:

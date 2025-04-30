@@ -362,7 +362,7 @@ class MeshNode():
                             self.seenPackets.add(p.seq)
                             self.usefulPackets += 1
                             if p.hopCount >= self.conf.GOSSIP_K: 
-                                if self.rebroadcastRng.uniform(0, 1) < self.conf.GOSSIP_P:
+                                if self.rebroadcastRng.uniform(0, 1) <= self.conf.GOSSIP_P:
                                     self.verboseprint('(GOSSIP) At time', round(self.env.now, 3), 'node', self.nodeid, 'rebroadcasts received packet', p.seq, 'with probability', self.conf.GOSSIP_P)
                                     pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now, self.verboseprint) 
                                     pNew.hopCount = p.hopCount+1

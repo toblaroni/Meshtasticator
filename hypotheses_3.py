@@ -40,7 +40,7 @@ else:
 #######################################
 
 repetitions = 20
-numberOfNodes = [ 3, 5, 10, 30, 75, 100 ]
+numberOfNodes = [ 5, 10, 15, 30, 75, 100 ]
 gossip_p_vals = [ 0.55, 0.6, 0.65, 0.7, 0.75 ]
 gossip_k_vals = [ 1, 2, 4 ]
 
