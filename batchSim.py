@@ -27,7 +27,7 @@ from lib.batch_common import *
 conf = Config()
 VERBOSE = False
 SHOW_GRAPH = False
-SAVE = True
+SAVE = False
 
 #######################################
 ####### SET BATCH PARAMS BELOW ########
@@ -39,10 +39,10 @@ SAVE = True
 routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.GOSSIP]
 
 # How many times should each combination run
-repetitions = 100
+repetitions = 1
 
 # How many nodes should be simulated in each test
-numberOfNodes = [ 5 ]
+numberOfNodes = [ 200 ]
 
 gossip_p = float(sys.argv[1])
 gossip_k = int(sys.argv[2])

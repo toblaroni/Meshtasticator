@@ -28,11 +28,11 @@ class Hypotheses1:
 
 
     def plot_all(self):
-        self.plot_coverage_by_p()
-        self.plot_redundancy_by_p()
         self.plot_coverage_by_k()
         self.plot_redundancy_by_k()
         self.plot_std_dev()
+        for num in [25, 50, 100, 200]:
+            self.plot_redundancy_vs_p(num)
 
     def plot_coverage_by_k(self):
         results_dir = os.path.join(self.output_dir, "coverage_by_k")
@@ -56,6 +56,12 @@ class Hypotheses1:
             plt.ylabel("Coverage (%)", fontsize=self.label_fontsize)
             plt.title(f"Coverage Comparison (k={k})", fontsize=self.title_fontsize)
             plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
+            yticks = np.arange(
+                0, 
+                100,
+                10
+            )
+            plt.yticks(yticks, fontsize=self.axis_fontsize)
             plt.legend(fontsize=self.axis_fontsize)
             plt.grid(True)
             plt.savefig(os.path.join(results_dir, f"coverage_k_{k}.png"))
@@ -132,7 +138,7 @@ class Hypotheses1:
             plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
             plt.legend(fontsize=self.axis_fontsize)
             plt.grid(True)
-            plt.savefig(os.path.join(results_dir, f"redundancy_p_{p:.2f}.png"))
+            plt.savefig(os.path.join(results_dir, f"redundancy_p_{p}.png"))
             plt.close()
 
     def plot_std_dev(self):
@@ -160,8 +166,8 @@ class Hypotheses1:
                 )
 
             plt.xlabel("Number of Nodes", fontsize=self.label_fontsize)
-            plt.ylabel("Reachability Std Dev", fontsize=self.label_fontsize)  # Fixed label
-            plt.title(f"Reachability Standard Deviation (k={k})", fontsize=self.title_fontsize)  # Fixed title
+            plt.ylabel("Coverage Std Dev", fontsize=self.label_fontsize)  # Fixed label
+            plt.title(f"Coverage Standard Deviation (k={k})", fontsize=self.title_fontsize)  # Fixed title
             plt.xticks(self.node_nums, fontsize=self.axis_fontsize)
             plt.legend(fontsize=self.axis_fontsize)
             plt.grid(True)
@@ -190,6 +196,51 @@ class Hypotheses1:
             plt.grid(True)
             plt.savefig(os.path.join(results_dir, f"redundancy_std_k_{k}.png"))  # Fixed filename
             plt.close()
+
+    def plot_redundancy_vs_p(self, node_num):
+        import os
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MultipleLocator
+
+        results_dir = os.path.join(self.output_dir, "redundancy_vs_p")
+        os.makedirs(results_dir, exist_ok=True)
+        node_index = self.node_nums.index(node_num)
+
+        # Create a single combined plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        for k in self.k_values:
+            # Filter and sort entries for current k
+            entries = [entry for entry in self.gossip_data if entry['k'] == k]
+            sorted_entries = sorted(entries, key=lambda x: x['p'])
+
+            # Extract redundancy data at 100 nodes
+            redundancies = [entry['redundancy'][node_index] for entry in sorted_entries]
+
+            # Plot each k on the same axes
+            ax.plot(
+                self.p_values,
+                redundancies,
+                marker='o',
+                linestyle='-'
+                ,
+                linewidth=2,
+                label=f'GOSSIP (k={k})'
+            )
+
+        # Formatting
+        ax.set_title(f"Redundancy vs Probability (p) at {node_num} Nodes", fontsize=self.title_fontsize)
+        ax.set_xlabel("p", fontsize=self.label_fontsize)
+        ax.set_ylabel("Redundancy (%)", fontsize=self.label_fontsize)
+        ax.set_xticks(self.p_values)
+        ax.tick_params(axis="both", labelsize=self.axis_fontsize)
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=self.axis_fontsize, title="k-values")
+
+        # Save combined figure
+        combined_path = os.path.join(results_dir, f'redundancy_vs_p_all_k_{node_num}_nodes.png')
+        fig.savefig(combined_path, bbox_inches='tight', dpi=300)
+        plt.close(fig)
 
 class Hypotheses2:
     def __init__(self, data_file, output_dir):
